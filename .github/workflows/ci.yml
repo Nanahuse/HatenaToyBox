@@ -1,11 +1,6 @@
 name: PR Check
 
-on: 
-  push:
-    branches:
-      - main
-
-  pull_request:
+on: [push, pull_request]
 
 env:
   PYTHONUTF8: 1
