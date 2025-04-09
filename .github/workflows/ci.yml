@@ -1,0 +1,39 @@
+name: PR Check
+
+on: 
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+env:
+  PYTHONUTF8: 1
+
+  UV_NO_PROGRESS: 1
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Initialize the project
+      run: uv sync --all-extras --dev
+
+    - name: Lint check
+      run: uv run ruff check .
+
+    - name: Format check
+      run: uv run ruff format --check --diff
+
+    - name: Type check
+      run: uv run mypy .
+
+    - name: Test
+      run: uv run pytest

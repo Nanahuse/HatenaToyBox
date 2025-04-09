@@ -1,0 +1,44 @@
+[project]
+name = "HatenaToyBox"
+version = "0.0.0"
+description = "Tools for Twitch streamers"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+license = { file = "LICENSE" }
+authors = [{ name = "Nanahuse" }]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+
+[project.urls]
+Homepage = "https://github.com/Nanahuse/HatenaToyBox"
+
+
+[tool.uv]
+dev-dependencies = [
+    "mypy>=1.13.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest>=8.3.3",
+    "ruff>=0.8.1",
+]
+
+[tool.ruff]
+line-length = 120
+lint.select = ["ALL"]
+lint.ignore = ["FIX002", "S101", "TRY300", "COM812", "D", "TD"]
+lint.fixable = ["ALL"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+"test/*" = ["INP001"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+python_version = "3.12"
