@@ -1,10 +1,18 @@
 [project]
 name = "HatenaToyBox"
-version = "0.0.0"
+version = "0.1.0"
 description = "Tools for Twitch streamers"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "deepl-py>=1.0.3",
+    "gpytranslate>=2.0.0",
+    "playsound3>=2.5.2",
+    "pydantic>=2.10.6",
+    "rich>=13.9.4",
+    "shelved-cache>=0.4.0",
+    "twitchio",
+]
 license = { file = "LICENSE" }
 authors = [{ name = "Nanahuse" }]
 classifiers = [
@@ -21,7 +29,13 @@ dev-dependencies = [
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
     "ruff>=0.8.1",
+    "types-cachetools>=5.5.0.20240820",
+    "mypy>=1.15.0",
 ]
+
+[tool.uv.sources]
+twitchio = { git = "https://github.com/Nanahuse/TwitchIO.git", rev = "feature/add_tags_to_modify_stream" }
+
 
 [tool.ruff]
 line-length = 120
@@ -33,12 +47,19 @@ lint.fixable = ["ALL"]
 docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
-"test/*" = ["INP001"]
+"test/*" = ["INP001", "SLF001"]
+
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+filterwarnings = [
+    "ignore:Inheritance class EventSubClient from web.Application is discouraged:DeprecationWarning",
+]
+asyncio_default_fixture_loop_scope = "function"
+
 
 [tool.mypy]
 strict = true
-ignore_missing_imports = true
 python_version = "3.12"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
