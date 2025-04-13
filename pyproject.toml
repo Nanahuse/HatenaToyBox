@@ -48,7 +48,7 @@ lint.fixable = ["ALL"]
 docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
-"test/*" = ["INP001", "SLF001"]
+"test/*" = ["INP001", "SLF001", "PLR2004"]
 
 
 [tool.pytest.ini_options]
@@ -61,6 +61,9 @@ addopts = ["--cov=src", "--cov-report=term", "--cov-fail-under=99"]
 
 [tool.coverage.run]
 omit = ["app.py"]
+
+[tool.coverage.report]
+exclude_lines = ["if TYPE_CHECKING:"]
 
 [tool.mypy]
 strict = true
