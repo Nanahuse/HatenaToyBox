@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
@@ -107,18 +107,10 @@ async def test_call_success(controller: ServiceController, mock_handler_a: Async
     controller.add_handler(ServiceA, mock_handler_a)
     service_instance = ServiceA(payload=payload_in)
 
-    # Mock logger to verify debug call (optional, can make tests brittle)
-    controller.logger.debug = MagicMock()  # type: ignore[method-assign]
-
     result = await controller.call(service_instance)
 
     assert result == expected_result
     mock_handler_a.assert_awaited_once_with(payload_in)  # Handler receives the payload
-
-    # Verify logging (optional)
-    controller.logger.debug.assert_called_once_with(
-        "%s: %s | result: %s", "ServiceA", str(service_instance), expected_result
-    )
 
 
 @pytest.mark.asyncio

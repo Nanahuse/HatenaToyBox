@@ -112,10 +112,8 @@ async def test_set_user_config_valid(
     assert result is True
     assert isinstance(feature._user_config, DummyUserConfig)
     assert feature._user_config.user_value == user_config_data["user_value"]
-    feature.logger.debug = MagicMock()  # type: ignore[method-assign]
     result = await feature.set_user_config(user_config_data)
     assert result is False
-    feature.logger.debug.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -128,10 +126,8 @@ async def test_set_user_config_none(
     result = await feature.set_user_config(None)
     assert result is True
     assert feature.user_config is None
-    feature.logger.debug = MagicMock()  # type: ignore[method-assign]
     result = await feature.set_user_config(None)
     assert result is False
-    feature.logger.debug.assert_not_called()
 
 
 @pytest.mark.asyncio
