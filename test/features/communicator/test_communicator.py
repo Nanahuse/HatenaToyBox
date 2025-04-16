@@ -1,13 +1,16 @@
 # mypy: disable-error-code="attr-defined"
 
 import asyncio
+import contextlib
 import datetime
 import logging
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
+import pytest_asyncio
 
 from common.core import Hub
 from common.feature import ConfigData, Feature
@@ -168,12 +171,12 @@ def mock_clips() -> list[models.Clip]:
     return [models.Clip(title="Clip", url="url", creator="creator", created_at="time")]
 
 
-@pytest.fixture
-def communicator(
+@pytest_asyncio.fixture
+async def communicator(
     mock_hub: MagicMock,
     system_config_data: ConfigData,
     mock_logger: MagicMock,
-) -> Communicator:
+) -> AsyncGenerator[Communicator, None]:
     with (
         patch("features.communicator.communicator.UpdateDetector", autospec=True),
         patch("features.communicator.communicator.routines.RoutineManager", autospec=True),
@@ -183,7 +186,11 @@ def communicator(
 
     # Override logger if needed
     communicator_instance._logger = mock_logger
-    return communicator_instance
+    yield communicator_instance
+
+    # clean up
+    with contextlib.suppress(Exception):
+        await communicator_instance.close()
 
 
 # --- Test Cases ---

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 from enum import StrEnum
 from pathlib import Path
@@ -104,6 +105,9 @@ class ClientManager:
             await asyncio.wait_for(connection_event.wait(), timeout=10)
         except TimeoutError:
             await client.close()
+
+            with contextlib.suppress(Exception):
+                await task
             return
 
         await self._twitch_client_manager.store(client, task)
