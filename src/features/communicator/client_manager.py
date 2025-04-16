@@ -40,11 +40,11 @@ class ClientManager:
 
         self._close_event = asyncio.Event()
 
-        self._twitch_client_manager = ProcessManager[Client]()
-        self._twitch_token_manager = ProcessManager[TokenManager]()
+        self._twitch_client_manager: ProcessManager[Client] = ProcessManager()
+        self._twitch_token_manager: ProcessManager[TokenManager] = ProcessManager()
 
-        self._stream_info_manager = ProcessManager[StreamInfoManager]()
-        self._stream_info_token_manager = ProcessManager[TokenManager]()
+        self._stream_info_manager: ProcessManager[StreamInfoManager] = ProcessManager()
+        self._stream_info_token_manager: ProcessManager[TokenManager] = ProcessManager()
 
     async def get_twitch_client(self) -> Client | None:
         return await self._twitch_client_manager.get()

@@ -35,7 +35,7 @@ class StreamInfoManager(BaseTwitchClient):
         super().__init__(logger, token, channel, connection_event)
         self._publisher = publisher
         self._stream_info_storage_directory = stream_info_storage_directory
-        self._stream_info_storage = dict[str, ModelFile[models.StreamInfo]]()
+        self._stream_info_storage: dict[str, ModelFile[models.StreamInfo]] = {}
 
     @commands.command()  # type: ignore[misc]
     async def info(self, context: commands.Context, action: str, name: str) -> None:
