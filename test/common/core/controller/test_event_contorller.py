@@ -253,15 +253,22 @@ async def test_run_event_with_no_matching_handler(controller: EventController, m
 
     run_task = asyncio.create_task(controller.run())
 
-    await controller.publish(event_a)
     await controller.publish(event_b)  # Publish event with no handler
+    await controller.publish(event_a)
 
-    await asyncio.sleep(0.02)
+    try:
+        # mock_handler_a
+        async def wait_for_handler_a_call() -> None:
+            while not mock_handler_a.called:  # noqa: ASYNC110
+                await asyncio.sleep(0.01)
 
-    # Handler for A should be called
-    mock_handler_a.assert_awaited_once_with(event_a)
+        await asyncio.wait_for(wait_for_handler_a_call(), timeout=5.0)
+    except TimeoutError:
+        pytest.fail("Timed out waiting for mock_handler_a to be called.")
+
+    # Handler for A should be called only once with event_a
     # No handler for B, so no calls expected related to it
-    # (mock_handler_a shouldn't be called with event_b)
+    mock_handler_a.assert_awaited_once_with(event_a)
 
     assert controller._queue.empty()  # Both events should be consumed
 
