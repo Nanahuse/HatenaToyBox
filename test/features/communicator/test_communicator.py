@@ -43,6 +43,7 @@ TEST_STREAM_INFO_DIR = Path("/fake/streaminfo")
 
 @pytest.fixture
 def mock_hub() -> MagicMock:
+    """Hub のモックを提供します。"""
     hub = MagicMock(spec=Hub)
     hub.create_publisher.return_value = AsyncMock()
     hub.add_event_handler = Mock()
@@ -52,6 +53,7 @@ def mock_hub() -> MagicMock:
 
 @pytest.fixture
 def mock_logger() -> MagicMock:
+    """ロガーのモックを提供します。"""
     logger = MagicMock(spec=logging.Logger)
     logger.getChild.return_value = logger
     return logger
@@ -59,12 +61,14 @@ def mock_logger() -> MagicMock:
 
 @pytest.fixture
 def mock_event_publisher(mock_hub: MagicMock) -> AsyncMock:
-    # Return the publisher created by the hub mock
+    """イベントパブリッシャーのモックを提供します。"""
+    # hub モックによって作成されたパブリッシャーを返します
     return cast("AsyncMock", mock_hub.create_publisher.return_value)
 
 
 @pytest.fixture
 def system_config_data() -> ConfigData:
+    """システム設定データのモックを提供します。"""
     return ConfigData(
         {
             "version": 0,
@@ -76,6 +80,7 @@ def system_config_data() -> ConfigData:
 
 @pytest.fixture
 def user_config_data() -> ConfigData:
+    """ユーザー設定データのモックを提供します。"""
     return ConfigData(
         {
             "version": 0,
@@ -87,15 +92,16 @@ def user_config_data() -> ConfigData:
 
 @pytest.fixture
 def mock_client_manager_instance() -> MagicMock:
+    """ClientManager インスタンスのモックを提供します。"""
     manager = MagicMock(spec=RealClientManager)
-    manager.get_twitch_client = AsyncMock(return_value=None)  # Default to no client
-    manager.update = AsyncMock()  # Mock the update method
+    manager.get_twitch_client = AsyncMock(return_value=None)  # デフォルトではクライアントなし
+    manager.update = AsyncMock()  # update メソッドをモックします
     return manager
 
 
 @pytest.fixture
 def mock_client_manager_cls(mock_client_manager_instance: MagicMock) -> MagicMock:
-    """Mocks the ClientManager class, returning a specific instance."""
+    """ClientManager クラスをモックし、特定のインスタンスを返します。"""
     mock_cls = MagicMock(spec=RealClientManager)
     mock_cls.return_value = mock_client_manager_instance
     return mock_cls
@@ -103,6 +109,7 @@ def mock_client_manager_cls(mock_client_manager_instance: MagicMock) -> MagicMoc
 
 @pytest.fixture
 def mock_update_detector_instance() -> MagicMock:
+    """UpdateDetector インスタンスのモックを提供します。"""
     detector = MagicMock(spec=RealUpdateDetector)
     detector.initialize = Mock()
     detector.update = AsyncMock()
@@ -111,7 +118,7 @@ def mock_update_detector_instance() -> MagicMock:
 
 @pytest.fixture
 def mock_update_detector_cls(mock_update_detector_instance: MagicMock) -> MagicMock:
-    """Mocks the UpdateDetector class, returning a specific instance."""
+    """UpdateDetector クラスをモックし、特定のインスタンスを返します。"""
     mock_cls = MagicMock(spec=RealUpdateDetector)
     mock_cls.return_value = mock_update_detector_instance
     return mock_cls
@@ -119,6 +126,7 @@ def mock_update_detector_cls(mock_update_detector_instance: MagicMock) -> MagicM
 
 @pytest.fixture
 def mock_routine_manager_instance() -> MagicMock:
+    """RoutineManager インスタンスのモックを提供します。"""
     manager = MagicMock(spec=routines.RoutineManager)
     manager.add = Mock()
     manager.start = Mock()
@@ -128,7 +136,7 @@ def mock_routine_manager_instance() -> MagicMock:
 
 @pytest.fixture
 def mock_routine_manager_cls(mock_routine_manager_instance: MagicMock) -> MagicMock:
-    """Mocks the RoutineManager class, returning a specific instance."""
+    """RoutineManager クラスをモックし、特定のインスタンスを返します。"""
     mock_cls = MagicMock(spec=routines.RoutineManager)
     mock_cls.return_value = mock_routine_manager_instance
     return mock_cls
@@ -136,15 +144,16 @@ def mock_routine_manager_cls(mock_routine_manager_instance: MagicMock) -> MagicM
 
 @pytest.fixture
 def mock_process_manager_instance() -> MagicMock:
+    """ProcessManager インスタンスのモックを提供します。"""
     manager = MagicMock(spec=RealProcessManager)
-    manager.get = AsyncMock(return_value=None)  # Default to no process
+    manager.get = AsyncMock(return_value=None)  # デフォルトではプロセスなし
     manager.update = AsyncMock()
     return manager
 
 
 @pytest.fixture
 def mock_process_manager_cls(mock_process_manager_instance: MagicMock) -> MagicMock:
-    """Mocks the ProcessManager class, returning a specific instance."""
+    """ProcessManager クラスをモックし、特定のインスタンスを返します。"""
     mock_cls = MagicMock(spec=RealProcessManager)
     mock_cls.return_value = mock_process_manager_instance
     return mock_cls
@@ -152,6 +161,7 @@ def mock_process_manager_cls(mock_process_manager_instance: MagicMock) -> MagicM
 
 @pytest.fixture
 def mock_twitch_client() -> MagicMock:
+    """Twitch クライアントのモックを提供します。"""
     client = MagicMock(spec=TwitchioClientProtocol)
     client.fetch_stream_info = AsyncMock()
     client.fetch_clips = AsyncMock()
@@ -163,11 +173,13 @@ def mock_twitch_client() -> MagicMock:
 
 @pytest.fixture
 def mock_stream_info() -> models.StreamInfo:
+    """StreamInfo モデルのモックを提供します。"""
     return models.StreamInfo(title="Test Title", game_name="Test Game", is_live=True, viewer_count=50)
 
 
 @pytest.fixture
 def mock_clips() -> list[models.Clip]:
+    """Clip モデルのリストのモックを提供します。"""
     return [models.Clip(title="Clip", url="url", creator="creator", created_at="time")]
 
 
@@ -177,6 +189,7 @@ async def communicator(
     system_config_data: ConfigData,
     mock_logger: MagicMock,
 ) -> AsyncGenerator[Communicator, None]:
+    """テスト対象の Communicator インスタンスを提供します。"""
     with (
         patch("features.communicator.communicator.UpdateDetector", autospec=True),
         patch("features.communicator.communicator.routines.RoutineManager", autospec=True),
@@ -184,11 +197,11 @@ async def communicator(
     ):
         communicator_instance = Communicator(mock_hub, system_config_data)
 
-    # Override logger if needed
+    # 必要に応じてロガーをオーバーライドします
     communicator_instance._logger = mock_logger
     yield communicator_instance
 
-    # clean up
+    # クリーンアップ
     with contextlib.suppress(Exception):
         await communicator_instance.close()
 
@@ -199,7 +212,7 @@ async def communicator(
 @patch("features.communicator.communicator.UpdateDetector", autospec=True)
 @patch("features.communicator.communicator.routines.RoutineManager", autospec=True)
 @patch("features.communicator.communicator.ProcessManager", autospec=True)
-def test_init(  # noqa: PLR0913
+def test_init(
     mock_process_manager_cls_comm: MagicMock,
     mock_routine_manager_cls_comm: MagicMock,
     mock_update_detector_cls_comm: MagicMock,
@@ -207,31 +220,31 @@ def test_init(  # noqa: PLR0913
     system_config_data: ConfigData,
     mock_event_publisher: AsyncMock,
 ) -> None:
-    """Test Communicator initialization."""
+    """Communicator の初期化をテストします。"""
 
-    # Instantiate Communicator *inside* the test function, while patches are active
+    # パッチがアクティブな状態で、テスト関数内で Communicator をインスタンス化します
     communicator = Communicator(mock_hub, system_config_data)
 
-    # --- Assertions ---
+    # --- アサーション ---
     assert communicator._event_publisher is mock_event_publisher
     assert isinstance(communicator.logger, logging.Logger)
 
-    # Check manager instantiations
-    # These mocks are the ones injected by the decorators on *this* test function,
-    # and they were active during the Communicator() call above.
-    mock_process_manager_cls_comm.assert_called_once()  # This should now pass
+    # マネージャーのインスタンス化を確認します
+    # これらのモックは、*この* テスト関数のデコレータによって注入されたものであり、
+    # 上記の Communicator() 呼び出し中にアクティブでした。
+    mock_process_manager_cls_comm.assert_called_once()  # これはパスするはずです
     assert communicator._client_manager is mock_process_manager_cls_comm.return_value
     mock_update_detector_cls_comm.assert_called_once_with(communicator.logger, mock_event_publisher)
     assert communicator._update_detector is mock_update_detector_cls_comm.return_value
     mock_routine_manager_cls_comm.assert_called_once()
     assert communicator._routine_manager is mock_routine_manager_cls_comm.return_value
 
-    # Check queues are created
+    # キューが作成されたことを確認します
     assert isinstance(communicator._comment_queue, asyncio.Queue)
     assert isinstance(communicator._announce_queue, asyncio.Queue)
     assert isinstance(communicator._shoutout_queue, asyncio.Queue)
 
-    # Check event/service handlers registered
+    # イベント/サービスハンドラが登録されたことを確認します
     expected_event_calls = [
         call(events.TwitchChannelConnected, communicator._on_twitch_channel_connected),
     ]
@@ -248,43 +261,42 @@ def test_init(  # noqa: PLR0913
 
 
 @pytest.mark.asyncio
-# Patch ClientManager within the communicator module where it's used
+# communicator モジュール内で使用されている ClientManager をパッチします
 @patch("features.communicator.communicator.ClientManager", autospec=True)
 async def test_set_user_config_none(
-    mock_client_manager_cls_comm: MagicMock,  # Renamed patch object
+    mock_client_manager_cls_comm: MagicMock,  # パッチオブジェクトの名前を変更
     communicator: Communicator,
 ) -> None:
-    """Test setting user config to None clears the ClientManager."""
-    # Assume a manager might exist initially
+    """ユーザー設定を None に設定すると ClientManager がクリアされることをテストします。"""
     communicator._client_manager.get.return_value = MagicMock()
 
     result = await communicator.set_user_config(None)
 
     assert result is False
     assert communicator.user_config is None
-    # Assert update(None) was called on the ProcessManager holding ClientManager
-    communicator._client_manager.update.assert_not_called()
-    # Ensure ClientManager class was NOT instantiated
+    # ClientManager を保持する ProcessManager で update(None) が呼び出されたことをアサートします
+    communicator._client_manager.update.assert_not_called()  # update(None) は直接呼ばれない
+    # ClientManager クラスがインスタンス化されなかったことを確認します
     mock_client_manager_cls_comm.assert_not_called()
 
 
 @pytest.mark.asyncio
 @patch("features.communicator.communicator.ClientManager", autospec=True)
 async def test_set_user_config_valid(
-    mock_client_manager_cls_comm: MagicMock,  # Renamed patch object
+    mock_client_manager_cls_comm: MagicMock,  # パッチオブジェクトの名前を変更
     communicator: Communicator,
     user_config_data: ConfigData,
     mock_logger: MagicMock,
     mock_event_publisher: AsyncMock,
 ) -> None:
-    """Test setting a valid user config creates and updates ClientManager."""
+    """有効なユーザー設定を設定すると ClientManager が作成および更新されることをテストします。"""
     result = await communicator.set_user_config(user_config_data)
 
     assert result is True
     assert communicator.user_config is not None
     assert communicator.user_config.channel == TEST_CHANNEL
 
-    # Assert ClientManager class was instantiated with correct args
+    # ClientManager クラスが正しい引数でインスタンス化されたことをアサートします
     mock_client_manager_cls_comm.assert_called_once_with(
         mock_logger,
         mock_event_publisher,
@@ -293,19 +305,36 @@ async def test_set_user_config_valid(
         TEST_CHANNEL,
         True,  # enable_stream_info_command
     )
-    # Assert update was called with the new ClientManager instance
+    # 新しい ClientManager インスタンスで update が呼び出されたことをアサートします
     communicator._client_manager.update.assert_awaited_once_with(mock_client_manager_cls_comm.return_value)
 
 
 @pytest.mark.asyncio
-async def test_run(communicator: Communicator) -> None:
-    """Test the main run loop starts routines and waits."""
-    with patch.object(Feature, "run", new_callable=AsyncMock) as mock_base_run:
-        # Run in a separate task to allow checks before it potentially blocks
-        run_task = asyncio.create_task(communicator.run())
-        await asyncio.sleep(0)  # Yield control
+async def test_set_user_config_reset(
+    user_config_data: ConfigData,
+    communicator: Communicator,
+) -> None:
+    """ユーザー設定を None に設定すると ClientManager がクリアされることをテストします。"""
+    await communicator.set_user_config(user_config_data)  # 最初に None でない設定を設定します
 
-        # Check routines added
+    communicator._client_manager.update.reset_mock()  # 以前の呼び出しをクリアします
+
+    result = await communicator.set_user_config(None)
+
+    assert result is True
+    assert communicator.user_config is None
+    communicator._client_manager.update.assert_awaited_once_with(None)
+
+
+@pytest.mark.asyncio
+async def test_run(communicator: Communicator) -> None:
+    """メインの実行ループがルーチンを開始し、待機することをテストします。"""
+    with patch.object(Feature, "run", new_callable=AsyncMock) as mock_base_run:
+        # ブロックする可能性のあるチェックの前に、別のタスクで実行します
+        run_task = asyncio.create_task(communicator.run())
+        await asyncio.sleep(0)  # 制御を譲ります
+
+        # ルーチンが追加されたことを確認します
         expected_routine_calls = [
             call(communicator._send_comment, COMMENTING_MINIMUM_INTERVAL),
             call(communicator._post_announce, ANNOUNCEMENT_MINIMUM_INTERVAL),
@@ -314,16 +343,16 @@ async def test_run(communicator: Communicator) -> None:
         ]
         communicator._routine_manager.add.assert_has_calls(expected_routine_calls, any_order=True)
 
-        # Check routines started
+        # ルーチンが開始されたことを確認します
         communicator._routine_manager.start.assert_called_once()
 
-        # Check super().run was awaited
+        # super().run が await されたことを確認します
         mock_base_run.assert_awaited_once()
 
-        # Cancel the task and ensure it raises CancelledError
+        # タスクをキャンセルし、CancelledError が発生することを確認します
         await communicator.close()
         await run_task
-        # Assert clear was called after cancellation/completion attempt
+        # キャンセル/完了試行後に clear が呼び出されたことをアサートします
         communicator._routine_manager.clear.assert_called_once()
 
 
@@ -334,12 +363,12 @@ async def test_on_twitch_channel_connected(
     mock_stream_info: models.StreamInfo,
     mock_clips: list[models.Clip],
 ) -> None:
-    """Test the handler for TwitchChannelConnected event."""
-    # Mock _get_twitch_client to return our mock client
+    """TwitchChannelConnected イベントのハンドラをテストします。"""
+    # _get_twitch_client がモッククライアントを返すようにモックします
     with patch.object(communicator, "_get_twitch_client", return_value=mock_twitch_client) as mock_get:
         mock_twitch_client.fetch_stream_info.return_value = mock_stream_info
         mock_twitch_client.fetch_clips.return_value = mock_clips
-        # Mock _polling to prevent its execution details interfering
+        # _polling の実行詳細が干渉しないようにモックします
         await communicator._on_twitch_channel_connected(MagicMock())
 
         mock_get.assert_awaited_once()
@@ -353,9 +382,9 @@ async def test_on_twitch_channel_connected_exception(
     communicator: Communicator,
     mock_logger: MagicMock,
 ) -> None:
-    """Test exception handling in _on_twitch_channel_connected."""
+    """_on_twitch_channel_connected の例外処理をテストします。"""
     error = ValueError("Fetch failed")
-    with patch.object(communicator, "_get_twitch_client", side_effect=error):  # Make getting client fail
+    with patch.object(communicator, "_get_twitch_client", side_effect=error):  # クライアント取得を失敗させます
         await communicator._on_twitch_channel_connected(MagicMock())
 
         mock_logger.exception.assert_called_once_with("Failed to initialize update detector")
@@ -364,17 +393,17 @@ async def test_on_twitch_channel_connected_exception(
 
 @pytest.mark.asyncio
 async def test_get_twitch_client_no_manager(communicator: Communicator) -> None:
-    """Test _get_twitch_client when ClientManager is not set."""
-    communicator._client_manager.get.return_value = None  # Simulate no manager
+    """ClientManager が設定されていない場合の _get_twitch_client をテストします。"""
+    communicator._client_manager.get.return_value = None  # マネージャーなしをシミュレートします
     with pytest.raises(RuntimeError, match="ClientManger is not initialized"):
         await communicator._get_twitch_client()
 
 
 @pytest.mark.asyncio
 async def test_get_twitch_client_no_client(communicator: Communicator, mock_client_manager_instance: MagicMock) -> None:
-    """Test _get_twitch_client when ClientManager has no active client."""
+    """ClientManager にアクティブなクライアントがない場合の _get_twitch_client をテストします。"""
     communicator._client_manager.get.return_value = mock_client_manager_instance
-    mock_client_manager_instance.get_twitch_client.return_value = None  # Simulate no client
+    mock_client_manager_instance.get_twitch_client.return_value = None  # クライアントなしをシミュレートします
     with pytest.raises(RuntimeError, match="TwitchClient is not initialized"):
         await communicator._get_twitch_client()
 
@@ -383,7 +412,7 @@ async def test_get_twitch_client_no_client(communicator: Communicator, mock_clie
 async def test_get_twitch_client_success(
     communicator: Communicator, mock_client_manager_instance: MagicMock, mock_twitch_client: MagicMock
 ) -> None:
-    """Test _get_twitch_client successfully returns the client."""
+    """_get_twitch_client がクライアントを正常に返すことをテストします。"""
     communicator._client_manager.get.return_value = mock_client_manager_instance
     mock_client_manager_instance.get_twitch_client.return_value = mock_twitch_client
 
@@ -392,11 +421,14 @@ async def test_get_twitch_client_success(
 
 
 @pytest.mark.asyncio
-@patch("features.communicator.communicator.cached", lambda cache: lambda func: func)  # Disable cache  # noqa: ARG005
+@patch(
+    "features.communicator.communicator.cached",
+    lambda cache: lambda func: func,  # noqa: ARG005
+)  # キャッシュを無効化します
 async def test_fetch_stream_info_service(
     communicator: Communicator, mock_twitch_client: MagicMock, mock_stream_info: models.StreamInfo
 ) -> None:
-    """Test the fetch_stream_info service handler."""
+    """fetch_stream_info サービスハンドラをテストします。"""
     user_arg = models.User(id=123, name="test", display_name="Test")
     with patch.object(communicator, "_get_twitch_client", return_value=mock_twitch_client):
         mock_twitch_client.fetch_stream_info.return_value = mock_stream_info
@@ -407,11 +439,14 @@ async def test_fetch_stream_info_service(
 
 
 @pytest.mark.asyncio
-@patch("features.communicator.communicator.cached", lambda cache: lambda func: func)  # Disable cache  # noqa: ARG005
+@patch(
+    "features.communicator.communicator.cached",
+    lambda cache: lambda func: func,  # noqa: ARG005
+)  # キャッシュを無効化します
 async def test_fetch_clips_service(
     communicator: Communicator, mock_twitch_client: MagicMock, mock_clips: list[models.Clip]
 ) -> None:
-    """Test the fetch_clips service handler."""
+    """fetch_clips サービスハンドラをテストします。"""
     duration_arg = datetime.timedelta(hours=1)
     with patch.object(communicator, "_get_twitch_client", return_value=mock_twitch_client):
         mock_twitch_client.fetch_clips.return_value = mock_clips
@@ -421,26 +456,19 @@ async def test_fetch_clips_service(
         mock_twitch_client.fetch_clips.assert_awaited_once_with(duration_arg)
 
 
-@pytest.mark.asyncio
-async def test_send_comment_service(communicator: Communicator) -> None:
-    """Test the SendComment service puts item in queue."""
-    comment = models.Comment(content="Hello", is_italic=False)
-    # Call the handler directly (which is queue.put)
-    await communicator._comment_queue.put(comment)
-    assert await communicator._comment_queue.get() == comment
-
-
 # --- Routine Tests ---
 
 
 @pytest.mark.asyncio
 async def test_send_comment_routine(communicator: Communicator, mock_twitch_client: MagicMock) -> None:
-    """Test the _send_comment routine."""
+    """_send_comment ルーチンをテストします。"""
     comment = models.Comment(content="Test", is_italic=True)
     await communicator._comment_queue.put(comment)
 
-    with patch.object(communicator, "_get_twitch_client", return_value=mock_twitch_client):
-        await communicator._send_comment()  # Execute the routine once
+    with patch.object(communicator, "_get_twitch_client", return_value=mock_twitch_client) as mock_get_client:
+        await communicator._send_comment()  # ルーチンを一度実行します
+
+        mock_get_client.assert_awaited_once()  # クライアントが取得されたことを確認します
 
     mock_twitch_client.send_comment.assert_awaited_once_with(comment)
     assert communicator._comment_queue.empty()
@@ -448,23 +476,23 @@ async def test_send_comment_routine(communicator: Communicator, mock_twitch_clie
 
 @pytest.mark.asyncio
 async def test_send_comment_routine_runtime_error(communicator: Communicator, mock_twitch_client: MagicMock) -> None:
-    """Test _send_comment routine requeues on RuntimeError."""
+    """_send_comment ルーチンが RuntimeError 時に再キューイングすることをテストします。"""
     comment = models.Comment(content="Test", is_italic=False)
     await communicator._comment_queue.put(comment)
 
-    # Simulate client not being ready
+    # クライアントが準備できていない状態をシミュレートします
     with patch.object(communicator, "_get_twitch_client", side_effect=RuntimeError("Client not ready")):
         await communicator._send_comment()
 
     mock_twitch_client.send_comment.assert_not_called()
-    # Check item was put back
+    # アイテムがキューに戻されたことを確認します
     assert not communicator._comment_queue.empty()
     assert await communicator._comment_queue.get() == comment
 
 
 @pytest.mark.asyncio
 async def test_post_announce_routine(communicator: Communicator, mock_twitch_client: MagicMock) -> None:
-    """Test the _post_announce routine."""
+    """_post_announce ルーチンをテストします。"""
     announce = models.Announcement(content="Announce", color="blue")
     await communicator._announce_queue.put(announce)
 
@@ -476,8 +504,23 @@ async def test_post_announce_routine(communicator: Communicator, mock_twitch_cli
 
 
 @pytest.mark.asyncio
+async def test_post_announce_routine_runtime_error(communicator: Communicator) -> None:
+    """_post_announce ルーチンが RuntimeError を処理することをテストします。"""
+    announce = models.Announcement(content="Announce", color="blue")
+    await communicator._announce_queue.put(announce)
+
+    with patch.object(communicator, "_get_twitch_client", side_effect=RuntimeError("Client gone")):
+        await communicator._post_announce()
+
+    # アイテムがキューに戻されたことを確認します
+    assert communicator._announce_queue.qsize() == 1
+    value = await communicator._announce_queue.get()
+    assert value == announce
+
+
+@pytest.mark.asyncio
 async def test_shoutout_routine(communicator: Communicator, mock_twitch_client: MagicMock) -> None:
-    """Test the _shoutout routine."""
+    """_shoutout ルーチンをテストします。"""
     user = models.User(id=456, name="shout", display_name="Shout")
     await communicator._shoutout_queue.put(user)
 
@@ -489,13 +532,28 @@ async def test_shoutout_routine(communicator: Communicator, mock_twitch_client: 
 
 
 @pytest.mark.asyncio
+async def test_shoutout_routine_runtime_error(communicator: Communicator) -> None:
+    """_shoutout ルーチンが RuntimeError を処理することをテストします。"""
+    user = models.User(id=456, name="shout", display_name="Shout")
+    await communicator._shoutout_queue.put(user)
+
+    with patch.object(communicator, "_get_twitch_client", side_effect=RuntimeError("Client gone")):
+        await communicator._shoutout()
+
+    # アイテムがキューに戻されたことを確認します
+    assert communicator._shoutout_queue.qsize() == 1
+    value = await communicator._shoutout_queue.get()
+    assert value == user
+
+
+@pytest.mark.asyncio
 async def test_polling_routine(
     communicator: Communicator,
     mock_twitch_client: MagicMock,
     mock_stream_info: models.StreamInfo,
     mock_clips: list[models.Clip],
 ) -> None:
-    """Test the _polling routine."""
+    """_polling ルーチンをテストします。"""
     with patch.object(communicator, "_get_twitch_client", return_value=mock_twitch_client):
         mock_twitch_client.fetch_stream_info.return_value = mock_stream_info
         mock_twitch_client.fetch_clips.return_value = mock_clips
@@ -511,9 +569,9 @@ async def test_polling_routine(
 async def test_polling_routine_runtime_error(
     communicator: Communicator,
 ) -> None:
-    """Test _polling routine handles RuntimeError."""
+    """_polling ルーチンが RuntimeError を処理することをテストします。"""
     with patch.object(communicator, "_get_twitch_client", side_effect=RuntimeError("Client gone")):
-        # Should not raise an exception
+        # 例外が発生しないはずです
         await communicator._polling()
 
     communicator._update_detector.update.assert_not_called()

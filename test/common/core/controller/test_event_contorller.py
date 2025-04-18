@@ -22,6 +22,19 @@ class EventB(Event):
     pass
 
 
+async def wait_for_handler_call(handler: AsyncMock) -> None:
+    """Wait for the handler to be called with the specified event."""
+    try:
+        # mock_handler_a
+        async def wait_for_handler_call() -> None:
+            while not handler.called:  # noqa: ASYNC110
+                await asyncio.sleep(0.01)
+
+        await asyncio.wait_for(wait_for_handler_call(), timeout=10.0)
+    except TimeoutError:
+        pytest.fail("Timed out waiting for handler to be called.")
+
+
 # --- Fixtures ---
 
 
@@ -201,7 +214,8 @@ async def test_run_multiple_handlers_same_event(
 
     run_task = asyncio.create_task(controller.run())
     await controller.publish(event_a)
-    await asyncio.sleep(0.01)
+
+    await wait_for_handler_call(mock_handler_a)
 
     handler1.assert_awaited_once_with(event_a)
     handler2.assert_awaited_once_with(event_a)
@@ -256,15 +270,7 @@ async def test_run_event_with_no_matching_handler(controller: EventController, m
     await controller.publish(event_b)  # Publish event with no handler
     await controller.publish(event_a)
 
-    try:
-        # mock_handler_a
-        async def wait_for_handler_a_call() -> None:
-            while not mock_handler_a.called:  # noqa: ASYNC110
-                await asyncio.sleep(0.01)
-
-        await asyncio.wait_for(wait_for_handler_a_call(), timeout=5.0)
-    except TimeoutError:
-        pytest.fail("Timed out waiting for mock_handler_a to be called.")
+    await wait_for_handler_call(mock_handler_a)
 
     # Handler for A should be called only once with event_a
     # No handler for B, so no calls expected related to it

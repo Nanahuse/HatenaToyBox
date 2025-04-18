@@ -49,7 +49,16 @@ lint.fixable = ["ALL"]
 docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
-"test/*" = ["FBT003", "INP001", "S105", "S106", "SLF001", "PLR2004"]
+"test/*" = [
+    "ERA001",
+    "FBT003",
+    "INP001",
+    "S105",
+    "S106",
+    "SLF001",
+    "PLR0913",
+    "PLR2004",
+]
 
 
 [tool.pytest.ini_options]

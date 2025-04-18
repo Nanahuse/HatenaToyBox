@@ -10,6 +10,7 @@ from schemas import events, models
 
 @pytest.fixture
 def mock_logger() -> MagicMock:
+    """ロガーのモックを提供します。"""
     logger = MagicMock(spec=logging.Logger)
     logger.getChild.return_value = logger
     return logger
@@ -17,11 +18,13 @@ def mock_logger() -> MagicMock:
 
 @pytest.fixture
 def mock_event_publisher() -> AsyncMock:
+    """EventPublisher のモックを提供します。"""
     return AsyncMock(spec=EventPublisher)
 
 
 @pytest.fixture
 def initial_stream_info() -> models.StreamInfo:
+    """初期の StreamInfo モデルを提供します。"""
     return models.StreamInfo(
         title="Initial Stream Title",
         game_name="Initial Game",
@@ -32,6 +35,7 @@ def initial_stream_info() -> models.StreamInfo:
 
 @pytest.fixture
 def initial_clips() -> list[models.Clip]:
+    """初期の Clip モデルのリストを提供します。"""
     return [
         models.Clip(
             title="Clip 1",
@@ -50,6 +54,7 @@ def initial_clips() -> list[models.Clip]:
 
 @pytest.fixture
 def new_stream_info() -> models.StreamInfo:
+    """新しい StreamInfo モデルを提供します。"""
     return models.StreamInfo(
         title="New Stream Title",
         game_name="New Game",
@@ -60,6 +65,7 @@ def new_stream_info() -> models.StreamInfo:
 
 @pytest.fixture
 def new_clip() -> models.Clip:
+    """新しい Clip モデルを提供します。"""
     return models.Clip(
         title="New Clip",
         url="http://newclip.com",
@@ -69,6 +75,7 @@ def new_clip() -> models.Clip:
 
 
 def test_init(mock_logger: MagicMock, mock_event_publisher: AsyncMock) -> None:
+    """UpdateDetector の初期化をテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     assert detector._logger is mock_logger
     assert detector._event_publisher is mock_event_publisher
@@ -83,15 +90,17 @@ def test_initialize_first_time(
     initial_stream_info: models.StreamInfo,
     initial_clips: list[models.Clip],
 ) -> None:
+    """初回 initialize の呼び出しをテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
+    # 状態が正しく初期化されたことを確認します
     assert detector._current_stream_info == initial_stream_info
     assert detector._stream_titles == {initial_stream_info.title}
     assert detector._handled_clips == {clip.url for clip in initial_clips}
 
 
-def test_initialize_already_initialized(  # noqa: PLR0913
+def test_initialize_already_initialized(
     mock_logger: MagicMock,
     mock_event_publisher: AsyncMock,
     initial_stream_info: models.StreamInfo,
@@ -99,18 +108,19 @@ def test_initialize_already_initialized(  # noqa: PLR0913
     new_stream_info: models.StreamInfo,
     new_clip: models.Clip,
 ) -> None:
+    """すでに初期化されている場合に initialize を呼び出しても状態が変わらないことをテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
-    # Store initial state for comparison
+    # 比較のために初期状態を保存します
     original_stream_info = detector._current_stream_info
     original_titles = detector._stream_titles.copy()
     original_clips = detector._handled_clips.copy()
 
-    # Attempt to initialize again
+    # 再度 initialize を試みます
     detector.initialize(new_stream_info, [new_clip])
 
-    # Assert state hasn't changed
+    # 状態が変わっていないことをアサートします
     assert detector._current_stream_info == original_stream_info
     assert detector._stream_titles == original_titles
     assert detector._handled_clips == original_clips
@@ -123,11 +133,14 @@ async def test_update_no_changes(
     initial_stream_info: models.StreamInfo,
     initial_clips: list[models.Clip],
 ) -> None:
+    """update を呼び出しても変更がない場合の動作をテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
+    # 同じ情報で update を呼び出します
     await detector.update(initial_stream_info, initial_clips)
 
+    # 状態が変わらず、イベントが発行されないことを確認します
     assert detector._current_stream_info == initial_stream_info
     assert detector._stream_titles == {initial_stream_info.title}
     assert detector._handled_clips == {clip.url for clip in initial_clips}
@@ -142,14 +155,17 @@ async def test_update_stream_info_changed(
     initial_clips: list[models.Clip],
     new_stream_info: models.StreamInfo,
 ) -> None:
+    """StreamInfo が変更された場合の update の動作をテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
+    # 新しい StreamInfo で update を呼び出します
     await detector.update(new_stream_info, initial_clips)
 
+    # StreamInfo が更新され、タイトルが追加され、イベントが発行されたことを確認します
     assert detector._current_stream_info == new_stream_info
     assert detector._stream_titles == {initial_stream_info.title, new_stream_info.title}
-    assert detector._handled_clips == {clip.url for clip in initial_clips}
+    assert detector._handled_clips == {clip.url for clip in initial_clips}  # クリップは変わらない
     mock_event_publisher.publish.assert_called_once_with(events.StreamInfoChanged(stream_info=new_stream_info))
 
 
@@ -161,12 +177,15 @@ async def test_update_new_clip_found(
     initial_clips: list[models.Clip],
     new_clip: models.Clip,
 ) -> None:
+    """新しいクリップが見つかった場合の update の動作をテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
+    # 新しいクリップを含むリストで update を呼び出します
     updated_clips = [*initial_clips, new_clip]
     await detector.update(initial_stream_info, updated_clips)
 
+    # StreamInfo は変わらず、新しいクリップの URL が追加され、イベントが発行されたことを確認します
     assert detector._current_stream_info == initial_stream_info
     assert detector._stream_titles == {initial_stream_info.title}
     assert detector._handled_clips == {clip.url for clip in updated_clips}
@@ -180,22 +199,26 @@ async def test_update_new_clip_found_title_matches_stream(
     initial_stream_info: models.StreamInfo,
     initial_clips: list[models.Clip],
 ) -> None:
+    """新しいクリップのタイトルが現在の配信タイトルと一致する場合、イベントが発行されないことをテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
+    # 配信タイトルと同じタイトルのクリップを作成します
     clip_with_stream_title = models.Clip(
-        title=initial_stream_info.title,  # Title matches stream
+        title=initial_stream_info.title,  # タイトルが配信と一致します
         url="http://titlematchclip.com",
         creator="Creator D",
         created_at="2023-01-01T00:10:00Z",
     )
     updated_clips = [*initial_clips, clip_with_stream_title]
 
+    # update を呼び出します
     await detector.update(initial_stream_info, updated_clips)
 
+    # 状態は変わりますが、イベントは発行されません
     assert detector._current_stream_info == initial_stream_info
     assert detector._stream_titles == {initial_stream_info.title}
-    # The new clip's URL should NOT be added because its title matched the stream title
+    # 新しいクリップの URL は、タイトルが一致したため追加 *されない* ことを確認します
     assert detector._handled_clips == {clip.url for clip in initial_clips}
     mock_event_publisher.publish.assert_not_called()
 
@@ -207,28 +230,32 @@ async def test_update_new_clip_found_url_already_handled(
     initial_stream_info: models.StreamInfo,
     initial_clips: list[models.Clip],
 ) -> None:
+    """新しいクリップの URL がすでに処理済みの場合、イベントが発行されないことをテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
+    # 処理済みの URL を持つクリップを作成します
     clip_with_handled_url = models.Clip(
         title="Different Title Same URL",
-        url=initial_clips[0].url,  # URL matches an already handled clip
+        url=initial_clips[0].url,  # URL が処理済みのクリップと一致します
         creator="Creator E",
         created_at="2023-01-01T00:15:00Z",
     )
     updated_clips = [*initial_clips, clip_with_handled_url]
 
+    # update を呼び出します
     await detector.update(initial_stream_info, updated_clips)
 
+    # 状態は変わらず、イベントは発行されません
     assert detector._current_stream_info == initial_stream_info
     assert detector._stream_titles == {initial_stream_info.title}
-    # The handled clips set should remain unchanged
+    # 処理済みクリップのセットは変わらないことを確認します
     assert detector._handled_clips == {clip.url for clip in initial_clips}
     mock_event_publisher.publish.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_update_stream_info_and_clip_changed(  # noqa: PLR0913
+async def test_update_stream_info_and_clip_changed(
     mock_logger: MagicMock,
     mock_event_publisher: AsyncMock,
     initial_stream_info: models.StreamInfo,
@@ -236,22 +263,28 @@ async def test_update_stream_info_and_clip_changed(  # noqa: PLR0913
     new_stream_info: models.StreamInfo,
     new_clip: models.Clip,
 ) -> None:
+    """StreamInfo とクリップの両方が変更された場合の update の動作をテストします。"""
     detector = UpdateDetector(mock_logger, mock_event_publisher)
     detector.initialize(initial_stream_info, initial_clips)
 
+    # 新しい StreamInfo と新しいクリップを含むリストで update を呼び出します
     updated_clips = [*initial_clips, new_clip]
     await detector.update(new_stream_info, updated_clips)
 
-    # Verify stream info update
+    # StreamInfo の更新を確認します
     assert detector._current_stream_info == new_stream_info
     assert detector._stream_titles == {initial_stream_info.title, new_stream_info.title}
 
-    # Verify clip update
+    # クリップの更新を確認します
     assert detector._handled_clips == {clip.url for clip in updated_clips}
 
-    # Verify events published
+    # 両方のイベントが発行されたことを確認します
     expected_calls = [
         call(events.StreamInfoChanged(stream_info=new_stream_info)),
         call(events.ClipFound(clip=new_clip)),
     ]
-    mock_event_publisher.publish.assert_has_calls(expected_calls, any_order=True)
+    assert mock_event_publisher.publish.await_count == 2
+    actual_calls = mock_event_publisher.publish.await_args_list
+    # 期待される両方の呼び出しが実際の呼び出しリストに含まれているか確認します
+    assert expected_calls[0] in actual_calls
+    assert expected_calls[1] in actual_calls
