@@ -105,7 +105,7 @@ def mock_http_client() -> MagicMock:
 
 
 @pytest.fixture
-def twitch_client(  # noqa: PLR0913
+def twitch_client(
     mock_logger: MagicMock,
     mock_token: SecretStr,
     mock_publisher: AsyncMock,
@@ -203,7 +203,7 @@ async def test_event_channel_joined_already_connected(
 
 
 @pytest.mark.asyncio
-async def test_event_channel_joined_success(  # noqa: PLR0913
+async def test_event_channel_joined_success(
     twitch_client: TwitchClient,
     mock_twitchio_channel: AsyncMock,
     mock_twitchio_streamer_user: AsyncMock,

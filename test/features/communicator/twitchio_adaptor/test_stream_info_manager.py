@@ -96,7 +96,7 @@ def stream_info_model() -> models.StreamInfo:
 
 
 @pytest.fixture
-def stream_info_manager(  # noqa: PLR0913
+def stream_info_manager(
     mock_logger: MagicMock,
     mock_token: SecretStr,
     mock_publisher: AsyncMock,
@@ -162,7 +162,7 @@ async def test_info_command_permission_denied(stream_info_manager: StreamInfoMan
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("is_mod", [True, False])
-async def test_info_command_save_new(  # noqa: PLR0913
+async def test_info_command_save_new(
     stream_info_manager: StreamInfoManager,
     mock_context: MagicMock,
     mock_logger: MagicMock,
@@ -214,7 +214,7 @@ async def test_info_command_save_existing(
 
 
 @pytest.mark.asyncio
-async def test_info_command_load_no_data(  # noqa: PLR0913
+async def test_info_command_load_no_data(
     stream_info_manager: StreamInfoManager,
     mock_context: MagicMock,
     mock_logger: MagicMock,
@@ -285,7 +285,7 @@ async def test_info_command_load_update_fails(
 
 
 @pytest.mark.asyncio
-async def test_info_command_clear(  # noqa: PLR0913
+async def test_info_command_clear(
     stream_info_manager: StreamInfoManager,
     mock_context: MagicMock,
     mock_logger: MagicMock,
@@ -395,7 +395,7 @@ async def test_update_stream_info_success_no_game(
         (ValueError("Some other error"), exceptions.UnhandledError, "Some other error"),
     ],
 )
-async def test_update_stream_info_error_wrapping(  # noqa: PLR0913
+async def test_update_stream_info_error_wrapping(
     stream_info_manager: StreamInfoManager,
     stream_info_model: models.StreamInfo,
     mock_user: AsyncMock,
