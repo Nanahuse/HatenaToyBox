@@ -1,6 +1,6 @@
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
-import constants
 import pytest
 
 from common.core import Hub
@@ -42,9 +42,9 @@ async def test_door_bell_new_user_with_no_user_config(mock_hub: Hub, mock_servic
 
 
 @pytest.mark.asyncio
-async def test_door_bell_new_user(mock_hub: Hub, mock_service_handler: MagicMock) -> None:
+async def test_door_bell_new_user(test_sound_file: Path, mock_hub: Hub, mock_service_handler: MagicMock) -> None:
     system_config = {"version": 0}
-    user_config = {"version": 0, "sound_file": constants.DOC_DIR / "sample.mp3"}
+    user_config = {"version": 0, "sound_file": test_sound_file}
     door_bell = DoorBell(mock_hub, system_config)
     await door_bell.set_user_config(user_config)
 
@@ -61,4 +61,4 @@ async def test_door_bell_new_user(mock_hub: Hub, mock_service_handler: MagicMock
 
     mock_service_handler.mock_play_sound.assert_called_once()
     play_sound_payload = mock_service_handler.mock_play_sound.call_args[0][0]
-    assert play_sound_payload.path == constants.DOC_DIR / "sample.mp3"
+    assert play_sound_payload.path == test_sound_file
