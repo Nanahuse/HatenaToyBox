@@ -42,7 +42,7 @@ twitchio = { git = "https://github.com/Nanahuse/TwitchIO.git", rev = "feature/ad
 [tool.ruff]
 line-length = 120
 lint.select = ["ALL"]
-lint.ignore = ["FIX002", "S101", "TRY300", "COM812", "D", "TD"]
+lint.ignore = ["FIX002", "S101", "TRY300", "COM812", "RUF002", "D", "TD"]
 lint.fixable = ["ALL"]
 
 [tool.ruff.format]
