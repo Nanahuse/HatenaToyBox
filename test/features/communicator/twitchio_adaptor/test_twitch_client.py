@@ -34,6 +34,7 @@ NOW = datetime.datetime(2023, 10, 27, 12, 0, 0, tzinfo=UTC)
 
 @pytest.fixture
 def mock_logger() -> MagicMock:
+    """モックされたロガーインスタンスを提供します。"""
     logger = MagicMock(spec=logging.Logger)
     logger.getChild.return_value = logger
     return logger
@@ -41,46 +42,52 @@ def mock_logger() -> MagicMock:
 
 @pytest.fixture
 def mock_token() -> SecretStr:
+    """モックされたトークンを提供します。"""
     return SecretStr(TEST_TOKEN_VALUE)
 
 
 @pytest.fixture
 def mock_publisher() -> AsyncMock:
+    """モックされた EventPublisher を提供します。"""
     return AsyncMock(spec=EventPublisher)
 
 
 @pytest.fixture
 def mock_connection_event() -> AsyncMock:
+    """モックされた接続イベントを提供します。"""
     event = AsyncMock(spec=asyncio.Event)
-    event.is_set.return_value = False  # Start as not connected
+    event.is_set.return_value = False  # 未接続状態で開始
     return event
 
 
 @pytest.fixture
 def mock_twitchio_channel() -> AsyncMock:
+    """モックされた twitchio の Channel オブジェクトを提供します。"""
     channel = AsyncMock(spec=twitchio_models.Channel)
     channel.name = TEST_CHANNEL_NAME
     channel.send = AsyncMock()
-    channel.user = AsyncMock()  # Mock the user() method
+    channel.user = AsyncMock()  # user() メソッドをモック
     return channel
 
 
 @pytest.fixture
 def mock_twitchio_streamer_user() -> AsyncMock:
+    """モックされた twitchio のストリーマーユーザーオブジェクトを提供します。"""
     user = AsyncMock(spec=twitchio_models.User)
     user.id = TEST_STREAMER_USER_ID
     user.name = TEST_CHANNEL_NAME
     user.fetch_clips = AsyncMock(return_value=[])
     user.chat_announcement = AsyncMock()
     user.shoutout = AsyncMock()
-    user.fetch = AsyncMock(return_value=user)  # For fetch() calls on user objects
+    user.fetch = AsyncMock(return_value=user)  # ユーザーオブジェクトに対する fetch() 呼び出し用
     return user
 
 
 @pytest.fixture
 def mock_twitchio_bot_user() -> MagicMock:
+    """モックされた twitchio のボットユーザーオブジェクトを提供します。"""
     user = MagicMock(spec=twitchio_models.User)
-    user.id = TEST_BOT_USER_ID  # Use integer ID
+    user.id = TEST_BOT_USER_ID  # 整数 ID を使用
     user.name = TEST_BOT_USER_NAME
     user.display_name = TEST_BOT_USER_DISPLAY_NAME
     user.fetch = AsyncMock(return_value=user)
@@ -89,8 +96,9 @@ def mock_twitchio_bot_user() -> MagicMock:
 
 @pytest.fixture
 def mock_eventsub_client() -> MagicMock:
-    # This fixture might still be useful if you need a pre-configured instance mock elsewhere
-    client = MagicMock(spec=RealEventSubWSClient)  # Use the real class here too
+    """モックされた EventSubWSClient インスタンスを提供します。"""
+    # このフィクスチャは、他の場所で事前に設定されたインスタンスモックが必要な場合に依然として役立つ可能性があります
+    client = MagicMock(spec=RealEventSubWSClient)  # ここでも実際のクラスを使用
     client.subscribe_channel_stream_start = AsyncMock()
     client.subscribe_channel_raid = AsyncMock()
     client.subscribe_channel_follows_v2 = AsyncMock()
@@ -99,8 +107,9 @@ def mock_eventsub_client() -> MagicMock:
 
 @pytest.fixture
 def mock_http_client() -> MagicMock:
+    """モックされた twitchio.http.TwitchHTTP オブジェクトを提供します。"""
     http = MagicMock(spec=twitchio.http.TwitchHTTP)
-    http.token = TEST_TOKEN_VALUE  # Simulate token access
+    http.token = TEST_TOKEN_VALUE  # トークンアクセスをシミュレート
     return http
 
 
@@ -115,8 +124,9 @@ def twitch_client(
     mock_twitchio_bot_user: MagicMock,
     mock_http_client: MagicMock,
 ) -> Generator[TwitchClient, None, None]:
-    # Patch BaseTwitchClient.__init__ to avoid its complexities during init
-    # Patch EventSubWSClient instantiation
+    """TwitchClient のインスタンスを提供します。"""
+    # BaseTwitchClient.__init__ をパッチして、初期化時の複雑さを回避
+    # EventSubWSClient のインスタンス化をパッチ
     with (
         patch.object(BaseTwitchClient, "__init__", return_value=None) as mock_base_init,
         patch("features.communicator.twitchio_adaptor.twitch_client.eventsub.EventSubWSClient") as mock_eventsub_cls,
@@ -131,25 +141,25 @@ def twitch_client(
             connection_event=mock_connection_event,
         )
 
-        # Manually set attributes usually set by BaseTwitchClient or assumed to exist after connection
+        # BaseTwitchClient によって通常設定されるか、接続後に存在すると仮定される属性を手動で設定
         client._logger = mock_logger
-        client._BaseTwitchClient__token = mock_token  # Use name mangling if necessary
+        client._BaseTwitchClient__token = mock_token  # 必要に応じて名前マングリングを使用
         client._publisher = mock_publisher
         client._connection_event = mock_connection_event
-        client._ws_client = None  # Start as None
+        client._ws_client = None  # None で開始
 
-        # Mock attributes that would be set in event_channel_joined for testing methods
+        # メソッドテストのために event_channel_joined で設定される属性をモック
         client._BaseTwitchClient__channel = mock_twitchio_channel
         client._BaseTwitchClient__user = mock_twitchio_streamer_user
         client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
-        client._http = mock_http_client  # Set the mocked http client
+        client._http = mock_http_client  # モックされた http クライアントを設定
 
         client._http.user_id = TEST_BOT_USER_ID
         client._events = {}
         client.registered_callbacks = {}
-        client._waiting = []  # Also initialize this, might be needed later
+        client._waiting = []  # これも初期化、後で必要になる可能性あり
 
-        # Mock the user() method return value on the channel mock
+        # チャンネルモックの user() メソッドの戻り値をモック
         mock_twitchio_channel.user.return_value = mock_twitchio_streamer_user
 
         yield client
@@ -161,29 +171,29 @@ def twitch_client(
 
 
 def test_init(twitch_client: TwitchClient, mock_logger: MagicMock, mock_publisher: AsyncMock) -> None:
-    """Test initialization of TwitchClient."""
+    """TwitchClient の初期化をテストします。"""
     assert twitch_client._logger is mock_logger
     assert twitch_client._publisher is mock_publisher
     assert twitch_client._ws_client is None
-    # Base init call is checked in the fixture teardown
+    # ベースの init 呼び出しはフィクスチャのティアダウンで確認
 
 
 def test_is_connected(twitch_client: TwitchClient, mock_eventsub_client: MagicMock) -> None:
-    """Test the is_connected property."""
-    # Initially, Base is not connected, ws_client is None
+    """is_connected プロパティをテストします。"""
+    # 初期状態: Base は未接続、ws_client は None
     with patch.object(BaseTwitchClient, "is_connected", False, create=True):
         assert not twitch_client.is_connected
 
-    # Base connected, ws_client is None
+    # Base 接続済み、ws_client は None
     with patch.object(BaseTwitchClient, "is_connected", True, create=True):
         assert not twitch_client.is_connected
 
-    # Base connected, ws_client is set
+    # Base 接続済み、ws_client が設定されている
     with patch.object(BaseTwitchClient, "is_connected", True, create=True):
         twitch_client._ws_client = mock_eventsub_client
         assert twitch_client.is_connected
 
-    # Base not connected, ws_client is set (shouldn't happen but test logic)
+    # Base 未接続、ws_client が設定されている (発生すべきではないがロジックをテスト)
     with patch.object(BaseTwitchClient, "is_connected", False, create=True):
         twitch_client._ws_client = mock_eventsub_client
         assert not twitch_client.is_connected
@@ -194,11 +204,11 @@ async def test_event_channel_joined_already_connected(
     twitch_client: TwitchClient,
     mock_twitchio_channel: AsyncMock,
 ) -> None:
-    """Test event_channel_joined does nothing if already connected."""
+    """既に接続されている場合、event_channel_joined が何もしないことをテストします。"""
     with patch.object(TwitchClient, "is_connected", True, create=True):
         await twitch_client.event_channel_joined(mock_twitchio_channel)
-        # Assert no major setup methods were called again
-        assert twitch_client._ws_client is None  # Should not have been set
+        # 主要なセットアップメソッドが再度呼び出されなかったことを確認
+        assert twitch_client._ws_client is None  # 設定されていないはず
         mock_twitchio_channel.user.assert_not_awaited()
 
 
@@ -212,38 +222,38 @@ async def test_event_channel_joined_success(
     mock_token: SecretStr,
     mock_connection_event: AsyncMock,
 ) -> None:
-    """Test successful initialization in event_channel_joined."""
-    # Ensure base class thinks it's not connected initially
+    """event_channel_joined での正常な初期化をテストします。"""
+    # ベースクラスが最初は未接続であると見なすようにする
     with (
         patch.object(BaseTwitchClient, "is_connected", False, create=True),
         patch(
             "features.communicator.twitchio_adaptor.twitch_client.eventsub.EventSubWSClient",
             return_value=mock_eventsub_client,
         ) as mock_eventsub_cls,
-        # --- FIX: Remove this patch ---
+        # --- 修正: このパッチを削除 ---
         # patch.object(BaseTwitchClient, "event_channel_joined", new_callable=AsyncMock) as mock_base_event_joined,
-        # --- End FIX ---
+        # --- 修正終了 ---
         patch.object(TwitchClient, "add_event") as mock_add_event,
         patch.object(
-            # Keep patching fetch_users on the TwitchClient instance being tested
+            # テスト対象の TwitchClient インスタンス上の fetch_users をパッチし続ける
             TwitchClient,
             "fetch_users",
             new_callable=AsyncMock,
             return_value=[mock_twitchio_bot_user],
         ) as mock_fetch_users,
     ):
-        # Mock the channel.user() call
+        # channel.user() 呼び出しをモック
         mock_twitchio_channel.user.return_value = mock_twitchio_streamer_user
 
-        # Ensure user_id is set for the base class method to use
-        # (Already done in the fixture by setting client._http.user_id)
+        # ベースクラスメソッドが使用するために user_id が設定されていることを確認
+        # (フィクスチャで client._http.user_id を設定することで既に完了)
 
         await twitch_client.event_channel_joined(mock_twitchio_channel)
 
-        # Assert EventSubWSClient was created
+        # EventSubWSClient が作成されたことを確認
         mock_eventsub_cls.assert_called_once_with(twitch_client)
 
-        # Assert add_event was called for notifications
+        # 通知用に add_event が呼び出されたことを確認
         expected_add_event_calls = [
             call(twitch_client._notification_stream_start, name="event_eventsub_notification_stream_start"),
             call(twitch_client._notification_raid, name="event_eventsub_notification_raid"),
@@ -251,7 +261,7 @@ async def test_event_channel_joined_success(
         ]
         mock_add_event.assert_has_calls(expected_add_event_calls, any_order=True)
 
-        # Assert subscriptions were called
+        # サブスクリプションが呼び出されたことを確認
         token_val = mock_token.get_secret_value()
         mock_eventsub_client.subscribe_channel_stream_start.assert_awaited_once_with(
             token=token_val, broadcaster=mock_twitchio_streamer_user
@@ -263,18 +273,18 @@ async def test_event_channel_joined_success(
             token=token_val, broadcaster=mock_twitchio_streamer_user, moderator=TEST_BOT_USER_ID
         )
 
-        # Assert ws_client is set
+        # ws_client が設定されたことを確認
         assert twitch_client._ws_client is mock_eventsub_client
 
-        # Assert attributes set by the *real* base class method are now set
+        # *実際の* ベースクラスメソッドによって設定される属性が設定されたことを確認
         assert twitch_client._BaseTwitchClient__channel is mock_twitchio_channel
         assert twitch_client._BaseTwitchClient__user is mock_twitchio_streamer_user
         assert twitch_client._BaseTwitchClient__bot_user is mock_twitchio_bot_user
 
-        # Assert fetch_users was called by the *real* base class method
+        # *実際の* ベースクラスメソッドによって fetch_users が呼び出されたことを確認
         mock_fetch_users.assert_awaited_once_with(ids=[TEST_BOT_USER_ID])
 
-        # Assert connection event was set by the *real* base class method
+        # *実際の* ベースクラスメソッドによって接続イベントが設定されたことを確認
         mock_connection_event.set.assert_called_once()
 
 
@@ -284,33 +294,33 @@ async def test_event_channel_joined_eventsub_unauthorized(
     mock_twitchio_channel: AsyncMock,
     mock_twitchio_streamer_user: AsyncMock,
 ) -> None:
-    """Test event_channel_joined handles UnauthorizedError during eventsub setup."""
+    """event_channel_joined が eventsub セットアップ中の UnauthorizedError を処理することをテストします。"""
     auth_error = twitchio_errors.Unauthorized("Eventsub auth failed")
     with (
         patch.object(BaseTwitchClient, "is_connected", False, create=True),
         patch("features.communicator.twitchio_adaptor.twitch_client.eventsub.EventSubWSClient") as mock_eventsub_cls,
         patch.object(BaseTwitchClient, "event_channel_joined", new_callable=AsyncMock) as mock_base_event_joined,
     ):
-        # Make one of the subscribe calls fail
+        # subscribe 呼び出しの 1 つを失敗させる
         mock_ws_instance = MagicMock()
         mock_ws_instance.subscribe_channel_stream_start.side_effect = auth_error
         mock_eventsub_cls.return_value = mock_ws_instance
 
-        # Mock the channel.user() call
+        # channel.user() 呼び出しをモック
         mock_twitchio_channel.user.return_value = mock_twitchio_streamer_user
 
         await twitch_client.event_channel_joined(mock_twitchio_channel)
 
-        # Assert ws_client was NOT set
+        # ws_client が設定されなかったことを確認
         assert twitch_client._ws_client is None
 
-        # Assert base class method was still called
+        # ベースクラスメソッドが依然として呼び出されたことを確認
         mock_base_event_joined.assert_awaited_once_with(mock_twitchio_channel)
 
 
 @pytest.mark.asyncio
 async def test_event_message_not_connected(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test event_message does nothing if not connected."""
+    """接続されていない場合、event_message が何もしないことをテストします。"""
     mock_message = MagicMock(spec=twitchio_models.Message)
     with patch.object(TwitchClient, "is_connected", False, create=True):
         await twitch_client.event_message(mock_message)
@@ -319,7 +329,7 @@ async def test_event_message_not_connected(twitch_client: TwitchClient, mock_pub
 
 @pytest.mark.asyncio
 async def test_event_message_no_content(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test event_message does nothing if message content is None."""
+    """メッセージの内容が None の場合、event_message が何もしないことをテストします。"""
     mock_message = MagicMock(spec=twitchio_models.Message)
     mock_message.content = None
     with patch.object(TwitchClient, "is_connected", True, create=True):
@@ -329,7 +339,7 @@ async def test_event_message_no_content(twitch_client: TwitchClient, mock_publis
 
 @pytest.mark.asyncio
 async def test_event_message_is_command(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test event_message invokes command handler if it's a command."""
+    """メッセージがコマンドの場合、event_message がコマンドハンドラを呼び出すことをテストします。"""
     mock_message = MagicMock(spec=twitchio_models.Message)
     mock_message.content = "!hello"
     mock_message.echo = False
@@ -352,10 +362,10 @@ async def test_event_message_is_command(twitch_client: TwitchClient, mock_publis
 
 @pytest.mark.asyncio
 async def test_event_message_is_echo(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test event_message ignores echo messages."""
+    """event_message がエコーメッセージを無視することをテストします。"""
     mock_message = MagicMock(spec=twitchio_models.Message)
     mock_message.content = "hello"
-    mock_message.echo = True  # Echo message
+    mock_message.echo = True  # エコーメッセージ
     mock_message.author = None  # author を None で設定
     mock_message.tags = {}  # tags を空辞書で設定
 
@@ -388,12 +398,12 @@ async def test_event_message_publishes_event(
     mock_publisher: AsyncMock,
     mock_twitchio_bot_user: AsyncMock,
 ) -> None:
-    """Test event_message publishes NewMessageReceived for regular messages."""
+    """通常のメッセージに対して event_message が NewMessageReceived を発行することをテストします。"""
     mock_message = MagicMock(spec=twitchio_models.Message)
     mock_message.content = "hello world"
     mock_message.echo = False
     mock_context = MagicMock(spec=commands.Context)
-    mock_context.prefix = None  # Not a command
+    mock_context.prefix = None  # コマンドではない
 
     mock_model_message = models.Message(
         content=mock_message.content,
@@ -415,7 +425,7 @@ async def test_event_message_publishes_event(
         await twitch_client.event_message(mock_message)
 
         mock_get_context.assert_awaited_once_with(mock_message)
-        mock_invoke.assert_not_called()  # Not invoked as prefix is None
+        mock_invoke.assert_not_called()  # prefix が None なので呼び出されない
         mock_cast_message.assert_called_once_with(mock_message, mock_twitchio_bot_user)
         mock_publisher.publish.assert_awaited_once_with(events.NewMessageReceived(message=mock_model_message))
 
@@ -425,12 +435,12 @@ async def test_event_message_publish_exception(
     twitch_client: TwitchClient,
     mock_publisher: AsyncMock,
 ) -> None:
-    """Test event_message handles exceptions during publishing."""
+    """発行中に event_message が例外を処理することをテストします。"""
     mock_message = MagicMock(spec=twitchio_models.Message)
     mock_message.content = "hello world"
     mock_message.echo = False
     mock_context = MagicMock(spec=commands.Context)
-    mock_context.prefix = None  # Not a command
+    mock_context.prefix = None  # コマンドではない
 
     mock_model_message = models.Message(
         content=mock_message.content,
@@ -453,12 +463,12 @@ async def test_event_message_publish_exception(
 
         assert str(publish_error) in str(exc_info.value)
         assert exc_info.value.__cause__ is publish_error
-        mock_publisher.publish.assert_awaited_once()  # Ensure it was called
+        mock_publisher.publish.assert_awaited_once()  # 呼び出されたことを確認
 
 
 @pytest.mark.asyncio
 async def test_notification_stream_start(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test _notification_stream_start publishes StreamWentOnline."""
+    """_notification_stream_start が StreamWentOnline を発行することをテストします。"""
     mock_event_data = MagicMock(spec=eventsub.models.StreamOnlineData)
     mock_event = MagicMock(spec=eventsub.models.NotificationEvent)
     mock_event.data = mock_event_data
@@ -470,8 +480,8 @@ async def test_notification_stream_start(twitch_client: TwitchClient, mock_publi
 
 @pytest.mark.asyncio
 async def test_notification_stream_start_wrong_type(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test _notification_stream_start ignores events of the wrong type."""
-    mock_event_data = MagicMock()  # Not StreamOnlineData
+    """_notification_stream_start が間違ったタイプのイベントを無視することをテストします。"""
+    mock_event_data = MagicMock()  # StreamOnlineData ではない
     mock_event = MagicMock(spec=eventsub.models.NotificationEvent)
     mock_event.data = mock_event_data
 
@@ -482,15 +492,15 @@ async def test_notification_stream_start_wrong_type(twitch_client: TwitchClient,
 
 @pytest.mark.asyncio
 async def test_notification_raid(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test _notification_raid publishes RaidDetected."""
+    """_notification_raid が RaidDetected を発行することをテストします。"""
     mock_raider_user = MagicMock(spec=twitchio_models.User)
     mock_raider_user.id = 123
     mock_raider_user.name = "raider1"
     mock_raider_user.display_name = "RaiderOne"
-    mock_raider_user.fetch = AsyncMock(return_value=mock_raider_user)  # Mock fetch on the user itself
+    mock_raider_user.fetch = AsyncMock(return_value=mock_raider_user)  # ユーザー自身に対する fetch をモック
 
     mock_event_data = MagicMock(spec=eventsub.models.ChannelRaidData)
-    mock_event_data.raider = mock_raider_user  # Assign the mock user
+    mock_event_data.raider = mock_raider_user  # モックユーザーを割り当て
 
     mock_event = MagicMock(spec=eventsub.models.NotificationEvent)
     mock_event.data = mock_event_data
@@ -506,7 +516,7 @@ async def test_notification_raid(twitch_client: TwitchClient, mock_publisher: As
 
 @pytest.mark.asyncio
 async def test_notification_raid_invalid_event(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test _notification_raid publishes RaidDetected."""
+    """_notification_raid が無効なイベントを無視することをテストします。"""
     mock_event = MagicMock(spec=eventsub.models.NotificationEvent)
     mock_event.data = None
 
@@ -517,7 +527,7 @@ async def test_notification_raid_invalid_event(twitch_client: TwitchClient, mock
 
 @pytest.mark.asyncio
 async def test_notification_follow(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test _notification_followV2 publishes FollowDetected."""
+    """_notification_followV2 が FollowDetected を発行することをテストします。"""
     mock_follower_user = MagicMock(spec=twitchio_models.User)
     mock_follower_user.id = 1234
     mock_follower_user.name = "follower1"
@@ -541,7 +551,7 @@ async def test_notification_follow(twitch_client: TwitchClient, mock_publisher: 
 
 @pytest.mark.asyncio
 async def test_notification_follow_invalid_event(twitch_client: TwitchClient, mock_publisher: AsyncMock) -> None:
-    """Test _notification_followV2 publishes FollowDetected."""
+    """_notification_followV2 が無効なイベントを無視することをテストします。"""
     mock_event = MagicMock(spec=eventsub.models.NotificationEvent)
     mock_event.data = None
 
@@ -551,7 +561,7 @@ async def test_notification_follow_invalid_event(twitch_client: TwitchClient, mo
 
 @pytest.mark.asyncio
 async def test_send_comment_not_connected(twitch_client: TwitchClient, mock_twitchio_channel: AsyncMock) -> None:
-    """Test send_comment does nothing if not connected."""
+    """接続されていない場合、send_comment が何もしないことをテストします。"""
     comment = models.Comment(content="hello", is_italic=False)
     with patch.object(TwitchClient, "is_connected", False, create=True):
         await twitch_client.send_comment(comment)
@@ -572,7 +582,7 @@ async def test_send_comment_success(
     is_italic: bool,  # noqa: FBT001
     expected_content: str,
 ) -> None:
-    """Test send_comment sends the correct content."""
+    """send_comment が正しい内容を送信することをテストします。"""
     content = expected_content.replace("/me ", "") if is_italic else expected_content
     comment = models.Comment(content=content, is_italic=is_italic)
     with patch.object(TwitchClient, "is_connected", True, create=True):
@@ -582,7 +592,7 @@ async def test_send_comment_success(
 
 @pytest.mark.asyncio
 async def test_send_comment_unauthorized(twitch_client: TwitchClient, mock_twitchio_channel: AsyncMock) -> None:
-    """Test send_comment wraps UnauthorizedError."""
+    """send_comment が UnauthorizedError をラップすることをテストします。"""
     comment = models.Comment(content="hello", is_italic=False)
     auth_error = twitchio_errors.Unauthorized("Send failed")
     mock_twitchio_channel.send.side_effect = auth_error
@@ -595,7 +605,7 @@ async def test_send_comment_unauthorized(twitch_client: TwitchClient, mock_twitc
 
 @pytest.mark.asyncio
 async def test_send_comment_unhandled_error(twitch_client: TwitchClient, mock_twitchio_channel: AsyncMock) -> None:
-    """Test send_comment wraps other errors."""
+    """send_comment が他のエラーをラップすることをテストします。"""
     comment = models.Comment(content="hello", is_italic=False)
     other_error = ValueError("Something else failed")
     mock_twitchio_channel.send.side_effect = other_error
@@ -610,7 +620,7 @@ async def test_send_comment_unhandled_error(twitch_client: TwitchClient, mock_tw
 async def test_post_announcement_not_connected(
     twitch_client: TwitchClient, mock_twitchio_streamer_user: AsyncMock
 ) -> None:
-    """Test post_announcement does nothing if not connected."""
+    """接続されていない場合、post_announcement が何もしないことをテストします。"""
     announcement = models.Announcement(content="hello", color="orange")
     with patch.object(TwitchClient, "is_connected", False, create=True):
         await twitch_client.post_announcement(announcement)
@@ -624,12 +634,12 @@ async def test_post_announcement_success(
     mock_twitchio_bot_user: AsyncMock,
     mock_http_client: MagicMock,
 ) -> None:
-    """Test post_announcement calls the correct API."""
+    """post_announcement が正しい API を呼び出すことをテストします。"""
     announcement = models.Announcement(content="Test Announce", color="purple")
     with patch.object(TwitchClient, "is_connected", True, create=True):
         await twitch_client.post_announcement(announcement)
         mock_twitchio_streamer_user.chat_announcement.assert_awaited_once_with(
-            mock_http_client.token,  # Access token from http client
+            mock_http_client.token,  # http クライアントからのアクセストークン
             mock_twitchio_bot_user.id,
             message=announcement.content,
             color=announcement.color,
@@ -640,7 +650,7 @@ async def test_post_announcement_success(
 async def test_post_announcement_unauthorized(
     twitch_client: TwitchClient, mock_twitchio_streamer_user: AsyncMock
 ) -> None:
-    """Test post_announcement wraps UnauthorizedError."""
+    """post_announcement が UnauthorizedError をラップすることをテストします。"""
     announcement = models.Announcement(content="hello", color="blue")
     auth_error = twitchio_errors.Unauthorized("Announce failed")
     mock_twitchio_streamer_user.chat_announcement.side_effect = auth_error
@@ -656,7 +666,7 @@ async def test_post_announcement_unhandled_error(
     twitch_client: TwitchClient,
     mock_twitchio_streamer_user: AsyncMock,
 ) -> None:
-    """Test post_announcement wraps other errors into UnhandledError."""
+    """post_announcement が他のエラーを UnhandledError にラップすることをテストします。"""
     announcement = models.Announcement(content="Test Announce", color="green")
     original_error = ValueError("Simulated unexpected error during chat_announcement")
     mock_twitchio_streamer_user.chat_announcement.side_effect = original_error
@@ -672,7 +682,7 @@ async def test_post_announcement_unhandled_error(
 
 @pytest.mark.asyncio
 async def test_shoutout_not_connected(twitch_client: TwitchClient, mock_twitchio_streamer_user: AsyncMock) -> None:
-    """Test shoutout does nothing if not connected."""
+    """接続されていない場合、shoutout が何もしないことをテストします。"""
     user = models.User(id=1234, name="shoutout1", display_name="ShoutUser")
     with patch.object(TwitchClient, "is_connected", False, create=True):
         await twitch_client.shoutout(user)
@@ -686,7 +696,7 @@ async def test_shoutout_success(
     mock_twitchio_bot_user: AsyncMock,
     mock_http_client: MagicMock,
 ) -> None:
-    """Test shoutout calls the correct API."""
+    """shoutout が正しい API を呼び出すことをテストします。"""
     user = models.User(id=1234, name="shoutout1", display_name="ShoutUser")
     with patch.object(TwitchClient, "is_connected", True, create=True):
         await twitch_client.shoutout(user)
@@ -699,7 +709,7 @@ async def test_shoutout_success(
 
 @pytest.mark.asyncio
 async def test_shoutout_unauthorized(twitch_client: TwitchClient, mock_twitchio_streamer_user: AsyncMock) -> None:
-    """Test shoutout wraps UnauthorizedError."""
+    """shoutout が UnauthorizedError をラップすることをテストします。"""
     user = models.User(id=1234, name="shoutout1", display_name="ShoutUser")
     auth_error = twitchio_errors.Unauthorized("Shoutout failed")
     mock_twitchio_streamer_user.shoutout.side_effect = auth_error
@@ -715,7 +725,7 @@ async def test_shoutout_unhandled_error(
     twitch_client: TwitchClient,
     mock_twitchio_streamer_user: AsyncMock,
 ) -> None:
-    """Test shoutout wraps other errors into UnhandledError."""
+    """shoutout が他のエラーを UnhandledError にラップすることをテストします。"""
     user = models.User(id=1234, name="shoutout1", display_name="ShoutUser")
     original_error = ValueError("Simulated unexpected error during shoutout")
     mock_twitchio_streamer_user.shoutout.side_effect = original_error
@@ -734,7 +744,7 @@ async def test_shoutout_unhandled_error(
 @pytest.mark.asyncio
 @freeze_time(NOW)
 async def test_fetch_clips_not_connected(twitch_client: TwitchClient) -> None:
-    """Test fetch_clips raises UnauthorizedError if not connected."""
+    """接続されていない場合、fetch_clips が UnauthorizedError を発生させることをテストします。"""
     duration = datetime.timedelta(minutes=5)
     with patch.object(TwitchClient, "is_connected", False, create=True):  # noqa: SIM117
         with pytest.raises(exceptions.UnauthorizedError, match="Not connected yet"):
@@ -747,15 +757,15 @@ async def test_fetch_clips_success(
     twitch_client: TwitchClient,
     mock_twitchio_streamer_user: AsyncMock,
 ) -> None:
-    """Test fetch_clips fetches and converts clips correctly."""
+    """fetch_clips がクリップを正しくフェッチし、変換することをテストします。"""
     duration = datetime.timedelta(minutes=10)
     expected_started_at = NOW - duration
 
-    # Mock twitchio clip objects
+    # twitchio クリップオブジェクトをモック
     mock_clip1_creator = MagicMock(spec=twitchio_models.User)
     mock_clip1_creator.name = "Creator1"
     mock_clip1 = MagicMock(spec=twitchio_models.Clip, url="url1", title="Title 1", creator=mock_clip1_creator)
-    mock_clip2_creator = MagicMock(spec=twitchio_models.User)  # Test anonymous creator
+    mock_clip2_creator = MagicMock(spec=twitchio_models.User)  # 匿名クリエイターをテスト
     mock_clip2_creator.name = None
     mock_clip2 = MagicMock(spec=twitchio_models.Clip, url="url2", title="Title 2", creator=mock_clip2_creator)
 
@@ -765,7 +775,7 @@ async def test_fetch_clips_success(
         result = await twitch_client.fetch_clips(duration)
 
         mock_twitchio_streamer_user.fetch_clips.assert_awaited_once()
-        # Check that started_at was passed correctly
+        # started_at が正しく渡されたかを確認
         call_args, call_kwargs = mock_twitchio_streamer_user.fetch_clips.call_args
         assert "started_at" in call_kwargs
         assert call_kwargs["started_at"] == expected_started_at
@@ -778,4 +788,4 @@ async def test_fetch_clips_success(
         assert isinstance(result[1], models.Clip)
         assert result[1].url == "url2"
         assert result[1].title == "Title 2"
-        assert result[1].creator == "Anonymous"  # Check anonymous handling
+        assert result[1].creator == "Anonymous"  # 匿名処理を確認

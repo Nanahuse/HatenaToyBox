@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import override
 
 from schemas.enums import Language
 
@@ -14,6 +15,7 @@ class JapaneseIdentifier(IdentifierAdaptor):
     def __init__(self) -> None:
         self._re = re.compile(f"[０-９Ａ-Ｚａ-ｚぁ-ヶァ-ヶｦ-ﾟ{self.KANJI_1}]")  # noqa: RUF001
 
+    @override
     def identify(self, text: str) -> Language:
         for t in text:
             if self._re.fullmatch(t) is not None:

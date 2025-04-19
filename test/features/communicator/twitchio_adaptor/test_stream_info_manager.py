@@ -29,6 +29,7 @@ TEST_STORAGE_NAME = "default"
 
 @pytest.fixture
 def mock_logger() -> MagicMock:
+    """モックされたロガーインスタンスを提供します。"""
     logger = MagicMock(spec=logging.Logger)
     logger.getChild.return_value = logger
     return logger
@@ -36,32 +37,35 @@ def mock_logger() -> MagicMock:
 
 @pytest.fixture
 def mock_token() -> SecretStr:
+    """モックされたトークンを提供します。"""
     return SecretStr(TEST_TOKEN_VALUE)
 
 
 @pytest.fixture
 def mock_publisher() -> AsyncMock:
+    """モックされた EventPublisher を提供します。"""
     return AsyncMock(spec="common.core.EventPublisher")
 
 
 @pytest.fixture
 def mock_connection_event() -> AsyncMock:
+    """モックされた接続イベントを提供します。"""
     event = AsyncMock(spec=asyncio.Event)
-    event.is_set.return_value = True  # Assume connected for most tests
+    event.is_set.return_value = True  # ほとんどのテストでは接続済みと仮定
     return event
 
 
 @pytest.fixture
 def mock_model_file_cls() -> MagicMock:
-    """Mocks the ModelFile class itself."""
+    """ModelFile クラス自体をモックします。"""
     return MagicMock(spec=ModelFile)
 
 
 @pytest.fixture
 def mock_model_file_instance() -> MagicMock:
-    """Mocks an instance of ModelFile."""
+    """ModelFile のインスタンスをモックします。"""
     instance = MagicMock(spec=ModelFile)
-    instance.data = None  # Default to no data
+    instance.data = None  # デフォルトはデータなし
     instance.update = Mock()
     instance.clear = Mock()
     return instance
@@ -69,7 +73,7 @@ def mock_model_file_instance() -> MagicMock:
 
 @pytest.fixture
 def mock_context() -> MagicMock:
-    """Mocks twitchio.ext.commands.Context."""
+    """twitchio.ext.commands.Context をモックします。"""
     context = MagicMock(spec=commands.Context)
     context.author = MagicMock(spec="twitchio.Chatter")
     context.author.name = "testuser"
@@ -80,7 +84,7 @@ def mock_context() -> MagicMock:
 
 @pytest.fixture
 def mock_user() -> AsyncMock:
-    """Mocks the twitchio.User object associated with the channel."""
+    """チャンネルに関連付けられた twitchio.User オブジェクトをモックします。"""
     user = AsyncMock(spec="twitchio.User")
     user.modify_stream = AsyncMock()
     return user
@@ -88,6 +92,7 @@ def mock_user() -> AsyncMock:
 
 @pytest.fixture
 def stream_info_model() -> models.StreamInfo:
+    """テスト用の StreamInfo モデルを提供します。"""
     return models.StreamInfo(
         title="Test Stream Title",
         game=models.Game(game_id="12345", name="Test Game"),
@@ -106,8 +111,9 @@ def stream_info_manager(
     mock_model_file_instance: MagicMock,
     mock_user: AsyncMock,
 ) -> Generator[StreamInfoManager, None, None]:
-    # Patch BaseTwitchClient.__init__ to avoid its complexities during init
-    # Patch ModelFile class to return our instance mock
+    """StreamInfoManager のインスタンスを提供します。"""
+    # BaseTwitchClient.__init__ をパッチして、初期化時の複雑さを回避
+    # ModelFile クラスをパッチして、インスタンスモックを返すようにする
     with (
         patch.object(BaseTwitchClient, "__init__", return_value=None) as mock_base_init,
         patch("features.communicator.twitchio_adaptor.stream_info_manager.ModelFile", mock_model_file_cls),
@@ -122,13 +128,13 @@ def stream_info_manager(
             publisher=mock_publisher,
             connection_event=mock_connection_event,
         )
-        # Manually set attributes usually set by BaseTwitchClient or assumed to exist
-        manager._logger = mock_logger  # Ensure logger is set correctly
+        # BaseTwitchClient によって通常設定されるか、存在すると仮定される属性を手動で設定
+        manager._logger = mock_logger  # ロガーが正しく設定されていることを確認
         manager._BaseTwitchClient__token = mock_token
         manager._BaseTwitchClient__user = mock_user
         manager._connection_event = mock_connection_event
-        # Mock the is_connected property directly for simplicity in tests
-        # We can override this per-test if needed
+        # テストを簡略化するために is_connected プロパティを直接モック
+        # 必要に応じてテストごとにオーバーライド可能
         with patch.object(StreamInfoManager, "is_connected", True, create=True):
             yield manager
 
@@ -139,16 +145,16 @@ def stream_info_manager(
 
 
 def test_init(stream_info_manager: StreamInfoManager, mock_logger: MagicMock, tmp_path: Path) -> None:
-    """Test initialization of StreamInfoManager."""
+    """StreamInfoManager の初期化をテストします。"""
     assert stream_info_manager._logger is mock_logger
-    assert stream_info_manager._publisher is not None  # From fixture
+    assert stream_info_manager._publisher is not None  # フィクスチャから
     assert stream_info_manager._stream_info_storage_directory == tmp_path
     assert stream_info_manager._stream_info_storage == {}
 
 
 @pytest.mark.asyncio
 async def test_info_command_permission_denied(stream_info_manager: StreamInfoManager, mock_context: MagicMock) -> None:
-    """Test !info command fails if user is not mod or broadcaster."""
+    """ユーザーがモデレーターまたは配信者でない場合、!info コマンドが失敗することをテストします。"""
     mock_context.author.is_broadcaster = False
     mock_context.author.is_mod = False
 
@@ -156,7 +162,7 @@ async def test_info_command_permission_denied(stream_info_manager: StreamInfoMan
         stream_info_manager, mock_context, StreamInfoCommand.SAVE, TEST_STORAGE_NAME
     )
 
-    # Ensure no file operations or API calls were attempted
+    # ファイル操作や API 呼び出しが試行されなかったことを確認
     assert not stream_info_manager._stream_info_storage
 
 
@@ -172,11 +178,11 @@ async def test_info_command_save_new(
     tmp_path: Path,
     is_mod: bool,  # noqa: FBT001
 ) -> None:
-    """Test !info save command when saving for the first time."""
+    """初めて保存する場合の !info save コマンドをテストします。"""
     mock_context.author.is_broadcaster = not is_mod
     mock_context.author.is_mod = is_mod
 
-    # Mock fetch_stream_info to return our model
+    # fetch_stream_info をモックしてモデルを返すようにする
     stream_info_manager.fetch_stream_info = AsyncMock(return_value=stream_info_model)  # type:ignore[method-assign]
 
     await stream_info_manager.info._callback(
@@ -198,7 +204,7 @@ async def test_info_command_save_existing(
     mock_model_file_instance: MagicMock,
     stream_info_model: models.StreamInfo,
 ) -> None:
-    """Test !info save command when the storage entry already exists."""
+    """ストレージエントリが既に存在する場合の !info save コマンドをテストします。"""
     mock_context.author.is_broadcaster = True
     stream_info_manager._stream_info_storage[TEST_STORAGE_NAME] = mock_model_file_instance
     stream_info_manager.fetch_stream_info = AsyncMock(return_value=stream_info_model)  # type:ignore[method-assign]
@@ -208,7 +214,7 @@ async def test_info_command_save_existing(
     )
 
     stream_info_manager.fetch_stream_info.assert_awaited_once_with(None)
-    mock_model_file_cls.assert_not_called()  # Should retrieve existing
+    mock_model_file_cls.assert_not_called()  # 既存のものを取得するはず
     assert stream_info_manager._stream_info_storage[TEST_STORAGE_NAME] is mock_model_file_instance
     mock_model_file_instance.update.assert_called_once_with(stream_info_model)
 
@@ -222,11 +228,11 @@ async def test_info_command_load_no_data(
     mock_model_file_instance: MagicMock,
     tmp_path: Path,
 ) -> None:
-    """Test !info load command when no data has been saved."""
+    """データが保存されていない場合の !info load コマンドをテストします。"""
     mock_context.author.is_mod = True
-    mock_model_file_instance.data = None  # Ensure no data
+    mock_model_file_instance.data = None  # データがないことを確認
 
-    # Mock _update_stream_info to check it's not called
+    # _update_stream_info をモックして呼び出されないことを確認
     stream_info_manager._update_stream_info = AsyncMock()  # type:ignore[method-assign]
 
     await stream_info_manager.info._callback(
@@ -246,12 +252,12 @@ async def test_info_command_load_success(
     mock_model_file_instance: MagicMock,
     stream_info_model: models.StreamInfo,
 ) -> None:
-    """Test !info load command successfully loads and updates stream info."""
+    """!info load コマンドが正常に配信情報をロードし、更新することをテストします。"""
     mock_context.author.is_broadcaster = True
     mock_model_file_instance.data = stream_info_model
     stream_info_manager._stream_info_storage[TEST_STORAGE_NAME] = mock_model_file_instance
 
-    # Mock _update_stream_info
+    # _update_stream_info をモック
     stream_info_manager._update_stream_info = AsyncMock()  # type:ignore[method-assign]
 
     await stream_info_manager.info._callback(
@@ -268,12 +274,12 @@ async def test_info_command_load_update_fails(
     mock_model_file_instance: MagicMock,
     stream_info_model: models.StreamInfo,
 ) -> None:
-    """Test !info load command when the underlying _update_stream_info fails."""
+    """基盤となる _update_stream_info が失敗した場合の !info load コマンドをテストします。"""
     mock_context.author.is_mod = True
     mock_model_file_instance.data = stream_info_model
     stream_info_manager._stream_info_storage[TEST_STORAGE_NAME] = mock_model_file_instance
 
-    # Mock _update_stream_info to raise an error
+    # _update_stream_info をモックしてエラーを発生させる
     update_error = exceptions.StreamInfoUpdateError("API failed")
     stream_info_manager._update_stream_info = AsyncMock(side_effect=update_error)  # type:ignore[method-assign]
 
@@ -293,7 +299,7 @@ async def test_info_command_clear(
     mock_model_file_instance: MagicMock,
     tmp_path: Path,
 ) -> None:
-    """Test !info clear command."""
+    """!info clear コマンドをテストします。"""
     mock_context.author.is_broadcaster = True
 
     await stream_info_manager.info._callback(
@@ -308,10 +314,10 @@ async def test_info_command_clear(
 
 @pytest.mark.asyncio
 async def test_info_command_unknown_action(stream_info_manager: StreamInfoManager, mock_context: MagicMock) -> None:
-    """Test !info command with an unknown action."""
+    """未知のアクションを持つ !info コマンドをテストします。"""
     mock_context.author.is_mod = True
 
-    # Mock potential side effect methods to ensure they aren't called
+    # 副作用を持つ可能性のあるメソッドをモックして、呼び出されないことを確認
     stream_info_manager.fetch_stream_info = AsyncMock()  # type:ignore[method-assign]
     stream_info_manager._update_stream_info = AsyncMock()  # type:ignore[method-assign]
     mock_model_file_instance = stream_info_manager._stream_info_storage.setdefault(
@@ -320,7 +326,7 @@ async def test_info_command_unknown_action(stream_info_manager: StreamInfoManage
 
     await stream_info_manager.info._callback(stream_info_manager, mock_context, "unknown_action", TEST_STORAGE_NAME)
 
-    # Should retrieve/create model file but not call update/clear/fetch/etc.
+    # モデルファイルを取得/作成するが、update/clear/fetch などは呼び出さないはず
     assert TEST_STORAGE_NAME in stream_info_manager._stream_info_storage
     stream_info_manager.fetch_stream_info.assert_not_awaited()
     stream_info_manager._update_stream_info.assert_not_awaited()
@@ -332,7 +338,7 @@ async def test_info_command_unknown_action(stream_info_manager: StreamInfoManage
 async def test_update_stream_info_not_connected(
     stream_info_manager: StreamInfoManager, stream_info_model: models.StreamInfo
 ) -> None:
-    """Test _update_stream_info raises NotConnectedError if not connected."""
+    """接続されていない場合、_update_stream_info が NotConnectedError を発生させることをテストします。"""
     with patch.object(StreamInfoManager, "is_connected", False, create=True):  # noqa: SIM117
         with pytest.raises(exceptions.NotConnectedError, match="StreamInfo update failed."):
             await stream_info_manager._update_stream_info(stream_info_model)
@@ -345,8 +351,8 @@ async def test_update_stream_info_success_with_game(
     mock_user: AsyncMock,
     mock_token: SecretStr,
 ) -> None:
-    """Test _update_stream_info successfully calls modify_stream with game."""
-    assert stream_info_model.game is not None  # Precondition
+    """_update_stream_info がゲーム情報付きで modify_stream を正常に呼び出すことをテストします。"""
+    assert stream_info_model.game is not None  # 前提条件
 
     await stream_info_manager._update_stream_info(stream_info_model)
 
@@ -365,7 +371,7 @@ async def test_update_stream_info_success_no_game(
     mock_user: AsyncMock,
     mock_token: SecretStr,
 ) -> None:
-    """Test _update_stream_info successfully calls modify_stream without game."""
+    """_update_stream_info がゲーム情報なしで modify_stream を正常に呼び出すことをテストします。"""
     stream_info_model_no_game = stream_info_model.model_copy(update={"game": None})
 
     await stream_info_manager._update_stream_info(stream_info_model_no_game)
@@ -403,7 +409,7 @@ async def test_update_stream_info_error_wrapping(
     expected_exception: type[exceptions.TwitchioAdaptorError],
     error_message: str,
 ) -> None:
-    """Test _update_stream_info wraps twitchio and other errors correctly."""
+    """_update_stream_info が twitchio やその他のエラーを正しくラップすることをテストします。"""
     mock_user.modify_stream.side_effect = raised_exception
 
     with pytest.raises(expected_exception) as exc_info:

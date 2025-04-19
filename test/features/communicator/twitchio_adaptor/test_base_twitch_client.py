@@ -30,6 +30,7 @@ NOW = datetime.datetime(2023, 10, 27, 12, 0, 0, tzinfo=UTC)
 
 @pytest.fixture
 def mock_logger() -> MagicMock:
+    """モックされたロガーインスタンスを提供します。"""
     logger = MagicMock(spec=logging.Logger)
     logger.getChild.return_value = logger
     return logger
@@ -37,27 +38,31 @@ def mock_logger() -> MagicMock:
 
 @pytest.fixture
 def mock_token() -> SecretStr:
+    """モックされたトークンを提供します。"""
     return SecretStr(TEST_TOKEN_VALUE)
 
 
 @pytest.fixture
 def mock_connection_event() -> AsyncMock:
+    """モックされた接続イベントを提供します。"""
     event = AsyncMock(spec=asyncio.Event)
-    event.is_set.return_value = False  # Start as not connected
-    event.set = Mock()  # Mock the set method
+    event.is_set.return_value = False  # 初期状態は未接続
+    event.set = Mock()  # set メソッドをモック
     return event
 
 
 @pytest.fixture
 def mock_twitchio_channel() -> AsyncMock:
+    """モックされた twitchio の Channel オブジェクトを提供します。"""
     channel = AsyncMock(spec=twitchio_models.Channel)
     channel.name = TEST_CHANNEL_NAME
-    channel.user = AsyncMock()  # Mock the user() method
+    channel.user = AsyncMock()  # user() メソッドをモック
     return channel
 
 
 @pytest.fixture
 def mock_twitchio_streamer_user() -> AsyncMock:
+    """モックされた twitchio のストリーマーユーザーオブジェクトを提供します。"""
     user = AsyncMock(spec=twitchio_models.User)
     user.id = TEST_STREAMER_USER_ID
     user.name = TEST_STREAMER_NAME
@@ -68,6 +73,7 @@ def mock_twitchio_streamer_user() -> AsyncMock:
 
 @pytest.fixture
 def mock_twitchio_bot_user() -> AsyncMock:
+    """モックされた twitchio のボットユーザーオブジェクトを提供します。"""
     user = AsyncMock(spec=twitchio_models.User)
     user.id = TEST_BOT_USER_ID
     user.name = TEST_BOT_NAME
@@ -77,17 +83,18 @@ def mock_twitchio_bot_user() -> AsyncMock:
 
 @pytest.fixture
 def mock_context() -> MagicMock:
-    """Mocks twitchio.ext.commands.Context."""
+    """twitchio.ext.commands.Context をモックします。"""
     return MagicMock(spec=commands.Context)
 
 
 @pytest.fixture
 def mock_channel_info() -> MagicMock:
-    # Use twitchio.models.ChannelInfo for spec if available, otherwise MagicMock
+    """モックされたチャンネル情報オブジェクトを提供します。"""
+    # 利用可能であれば twitchio.models.ChannelInfo を spec に使用し、そうでなければ MagicMock を使用
     try:
         spec = twitchio_models.ChannelInfo
     except AttributeError:
-        spec = MagicMock  # Fallback if ChannelInfo is not in twitchio_models
+        spec = MagicMock  # ChannelInfo が twitchio_models にない場合のフォールバック
     info = MagicMock(spec=spec)
     info.game_id = "12345"
     info.game_name = "Test Game"
@@ -98,6 +105,7 @@ def mock_channel_info() -> MagicMock:
 
 @pytest.fixture
 def mock_twitchio_clip() -> MagicMock:
+    """モックされた twitchio の Clip オブジェクトを提供します。"""
     clip = MagicMock(spec=twitchio_models.Clip)
     clip.url = "http://clip.test/1"
     clip.title = "Test Clip 1"
@@ -112,7 +120,8 @@ def base_twitch_client(
     mock_token: SecretStr,
     mock_connection_event: AsyncMock,
 ) -> Generator[BaseTwitchClient, None, None]:
-    # Patch commands.Bot.__init__ to avoid its complexities during init
+    """BaseTwitchClient のインスタンスを提供します。"""
+    # commands.Bot.__init__ をパッチして、初期化時の複雑さを回避
     with patch.object(commands.Bot, "__init__", return_value=None) as mock_bot_init:
         client = BaseTwitchClient(
             logger=mock_logger,
@@ -120,29 +129,29 @@ def base_twitch_client(
             channel=TEST_CHANNEL_NAME,
             connection_event=mock_connection_event,
         )
-        # Manually set attributes usually set by commands.Bot or assumed to exist
-        client._logger = mock_logger  # Ensure logger is set correctly
+        # commands.Bot や後で設定される属性を手動で設定
+        client._logger = mock_logger  # ロガーが正しく設定されていることを確認
         client._BaseTwitchClient__token = mock_token
         client._connection_event = mock_connection_event
-        # Simulate attributes set by commands.Bot.__init__
+        # commands.Bot.__init__ によって設定される属性をシミュレート
         client._prefix = "!"
         client._initial_channels = [TEST_CHANNEL_NAME]
 
-        # Mock attributes that would be set later or are part of Bot
-        client._connection = MagicMock()  # Mock the connection object
-        client._http = MagicMock()  # Mock the http object
-        # Mock the user_id property which comes from commands.Bot
-        # Usually reads from _http.user_id, so mock that
+        # 後で設定されるか、Bot の一部である属性をモック
+        client._connection = MagicMock()  # connection オブジェクトをモック
+        client._http = MagicMock()  # http オブジェクトをモック
+        # commands.Bot から来る user_id プロパティをモック
+        # 通常は _http.user_id から読み取るので、それをモック
         client._http.user_id = TEST_BOT_USER_ID
 
-        # Mock internal state attributes
+        # 内部状態の属性をモック
         client._BaseTwitchClient__channel = None
         client._BaseTwitchClient__user = None
         client._BaseTwitchClient__bot_user = None
 
         yield client
 
-    # Check if Bot init was called correctly by BaseTwitchClient init
+    # BaseTwitchClient の init によって Bot の init が正しく呼び出されたかを確認
     mock_bot_init.assert_called_once_with(
         mock_token.get_secret_value(), client_secret="", prefix="!", initial_channels=[TEST_CHANNEL_NAME]
     )
@@ -157,57 +166,57 @@ def test_init(
     mock_token: SecretStr,
     mock_connection_event: AsyncMock,
 ) -> None:
-    """Test initialization of BaseTwitchClient."""
+    """BaseTwitchClient の初期化をテストします。"""
     assert base_twitch_client._logger is mock_logger
     assert base_twitch_client._BaseTwitchClient__token is mock_token
     assert base_twitch_client._connection_event is mock_connection_event
     assert base_twitch_client._BaseTwitchClient__channel is None
     assert base_twitch_client._BaseTwitchClient__user is None
     assert base_twitch_client._BaseTwitchClient__bot_user is None
-    # Bot init call is checked in the fixture teardown
+    # Bot の init 呼び出しはフィクスチャのティアダウンで確認
 
 
-# --- Property Tests ---
+# --- プロパティテスト ---
 
 
 def test_channel_property_not_connected(base_twitch_client: BaseTwitchClient) -> None:
-    """Test _channel property raises ImplementationError when not connected."""
+    """未接続時に _channel プロパティが ImplementationError を発生させることをテストします。"""
     with pytest.raises(exceptions.ImplementationError, match="Not connected yet"):
         _ = base_twitch_client._channel
 
 
 def test_channel_property_connected(base_twitch_client: BaseTwitchClient, mock_twitchio_channel: AsyncMock) -> None:
-    """Test _channel property returns channel when connected."""
+    """接続時に _channel プロパティがチャンネルを返すことをテストします。"""
     base_twitch_client._BaseTwitchClient__channel = mock_twitchio_channel
     assert base_twitch_client._channel is mock_twitchio_channel
 
 
 def test_user_property_not_connected(base_twitch_client: BaseTwitchClient) -> None:
-    """Test _user property raises ImplementationError when not connected."""
+    """未接続時に _user プロパティが ImplementationError を発生させることをテストします。"""
     with pytest.raises(exceptions.ImplementationError, match="Not connected yet"):
         _ = base_twitch_client._user
 
 
 def test_user_property_connected(base_twitch_client: BaseTwitchClient, mock_twitchio_streamer_user: AsyncMock) -> None:
-    """Test _user property returns user when connected."""
+    """接続時に _user プロパティがユーザーを返すことをテストします。"""
     base_twitch_client._BaseTwitchClient__user = mock_twitchio_streamer_user
     assert base_twitch_client._user is mock_twitchio_streamer_user
 
 
 def test_bot_user_property_not_connected(base_twitch_client: BaseTwitchClient) -> None:
-    """Test _bot_user property raises ImplementationError when not connected."""
+    """未接続時に _bot_user プロパティが ImplementationError を発生させることをテストします。"""
     with pytest.raises(exceptions.ImplementationError, match="Not connected yet"):
         _ = base_twitch_client._bot_user
 
 
 def test_bot_user_property_connected(base_twitch_client: BaseTwitchClient, mock_twitchio_bot_user: AsyncMock) -> None:
-    """Test _bot_user property returns bot_user when connected."""
+    """接続時に _bot_user プロパティがボットユーザーを返すことをテストします。"""
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
     assert base_twitch_client._bot_user is mock_twitchio_bot_user
 
 
 def test_token_property(base_twitch_client: BaseTwitchClient, mock_token: SecretStr) -> None:
-    """Test _token property returns the token."""
+    """_token プロパティがトークンを返すことをテストします。"""
     assert base_twitch_client._token is mock_token
 
 
@@ -217,8 +226,8 @@ def test_is_connected_property(
     mock_twitchio_streamer_user: AsyncMock,
     mock_twitchio_bot_user: AsyncMock,
 ) -> None:
-    """Test is_connected property logic."""
-    assert not base_twitch_client.is_connected  # Initially False
+    """is_connected プロパティのロジックをテストします。"""
+    assert not base_twitch_client.is_connected  # 初期状態は False
 
     base_twitch_client._BaseTwitchClient__channel = mock_twitchio_channel
     assert not base_twitch_client.is_connected
@@ -227,7 +236,7 @@ def test_is_connected_property(
     assert not base_twitch_client.is_connected
 
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
-    assert base_twitch_client.is_connected  # All set, should be True
+    assert base_twitch_client.is_connected  # 全て設定されたので True になるはず
 
 
 def test_is_streamer_property(
@@ -235,26 +244,26 @@ def test_is_streamer_property(
     mock_twitchio_streamer_user: AsyncMock,
     mock_twitchio_bot_user: AsyncMock,
 ) -> None:
-    """Test is_streamer property logic."""
-    # Case 1: Bot is the streamer
-    mock_twitchio_streamer_user.id = TEST_BOT_USER_ID  # Make streamer ID match bot ID
+    """is_streamer プロパティのロジックをテストします。"""
+    # ケース 1: ボットがストリーマーである
+    mock_twitchio_streamer_user.id = TEST_BOT_USER_ID  # ストリーマーIDをボットIDと一致させる
     base_twitch_client._BaseTwitchClient__user = mock_twitchio_streamer_user
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
     assert base_twitch_client.is_streamer
 
-    # Case 2: Bot is not the streamer
-    mock_twitchio_streamer_user.id = TEST_STREAMER_USER_ID  # Different ID
+    # ケース 2: ボットがストリーマーではない
+    mock_twitchio_streamer_user.id = TEST_STREAMER_USER_ID  # 異なるID
     base_twitch_client._BaseTwitchClient__user = mock_twitchio_streamer_user
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
     assert not base_twitch_client.is_streamer
 
 
-# --- Command Method Tests ---
+# --- コマンドメソッドテスト ---
 
 
 @pytest.mark.asyncio
 async def test_info_command_called(base_twitch_client: BaseTwitchClient, mock_context: MagicMock) -> None:
-    """Test that the info command callback can be called without error."""
+    """info コマンドのコールバックがエラーなしで呼び出せることをテストします。"""
     action = "test_action"
     name = "test_name"
 
@@ -264,15 +273,15 @@ async def test_info_command_called(base_twitch_client: BaseTwitchClient, mock_co
     try:
         await base_twitch_client.info._callback(base_twitch_client, mock_context, action, name)
     except Exception as e:  # noqa: BLE001
-        pytest.fail(f"Calling info command callback raised an unexpected exception: {e}")
+        pytest.fail(f"info コマンドのコールバック呼び出しで予期せぬ例外が発生しました: {e}")
 
 
-# --- Method Tests ---
+# --- メソッドテスト ---
 
 
 @pytest.mark.asyncio
 async def test_run_success(base_twitch_client: BaseTwitchClient) -> None:
-    """Test run calls super().start() successfully."""
+    """run が super().start() を正常に呼び出すことをテストします。"""
     with patch.object(commands.Bot, "start", new_callable=AsyncMock) as mock_start:
         await base_twitch_client.run()
         mock_start.assert_awaited_once()
@@ -280,7 +289,7 @@ async def test_run_success(base_twitch_client: BaseTwitchClient) -> None:
 
 @pytest.mark.asyncio
 async def test_run_auth_error(base_twitch_client: BaseTwitchClient) -> None:
-    """Test run wraps AuthenticationError."""
+    """run が AuthenticationError をラップすることをテストします。"""
     auth_error = twitchio_errors.AuthenticationError("Invalid token")
     with patch.object(commands.Bot, "start", side_effect=auth_error) as mock_start:
         with pytest.raises(exceptions.UnauthorizedError) as exc_info:
@@ -292,7 +301,7 @@ async def test_run_auth_error(base_twitch_client: BaseTwitchClient) -> None:
 
 @pytest.mark.asyncio
 async def test_run_other_error(base_twitch_client: BaseTwitchClient) -> None:
-    """Test run wraps other BaseExceptions."""
+    """run が他の BaseException をラップすることをテストします。"""
     other_error = ValueError("Something went wrong")
     with patch.object(commands.Bot, "start", side_effect=other_error) as mock_start:
         with pytest.raises(exceptions.UnhandledError) as exc_info:
@@ -304,21 +313,21 @@ async def test_run_other_error(base_twitch_client: BaseTwitchClient) -> None:
 
 @pytest.mark.asyncio
 async def test_close(base_twitch_client: BaseTwitchClient) -> None:
-    """Test close calls super().close()."""
+    """close が super().close() を呼び出すことをテストします。"""
     with patch.object(commands.Bot, "close", new_callable=AsyncMock) as mock_close:
         await base_twitch_client.close()
         mock_close.assert_awaited_once()
 
 
-# --- Event Handler Tests ---
+# --- イベントハンドラテスト ---
 
 
 @pytest.mark.asyncio
 async def test_event_channel_joined_already_connected(
     base_twitch_client: BaseTwitchClient, mock_twitchio_channel: AsyncMock, mock_connection_event: AsyncMock
 ) -> None:
-    """Test event_channel_joined does nothing if already connected."""
-    # Simulate connected state
+    """既に接続されている場合、event_channel_joined が何もしないことをテストします。"""
+    # 接続状態をシミュレート
     base_twitch_client._BaseTwitchClient__channel = mock_twitchio_channel
     base_twitch_client._BaseTwitchClient__user = MagicMock()
     base_twitch_client._BaseTwitchClient__bot_user = MagicMock()
@@ -340,11 +349,11 @@ async def test_event_channel_joined_success(
     mock_twitchio_bot_user: AsyncMock,
     mock_connection_event: AsyncMock,
 ) -> None:
-    """Test event_channel_joined sets attributes and event on success."""
+    """event_channel_joined が成功時に属性とイベントを設定することをテストします。"""
     assert not base_twitch_client.is_connected
     mock_twitchio_channel.user.return_value = mock_twitchio_streamer_user
 
-    # Mock the fetch_users method directly on the instance
+    # インスタンス上で fetch_users メソッドを直接モック
     base_twitch_client.fetch_users = AsyncMock(return_value=[mock_twitchio_bot_user])
 
     await base_twitch_client.event_channel_joined(mock_twitchio_channel)
@@ -362,7 +371,7 @@ async def test_event_channel_joined_success(
 async def test_event_channel_join_failure(
     base_twitch_client: BaseTwitchClient, mock_connection_event: AsyncMock
 ) -> None:
-    """Test event_channel_join_failure logs error and sets event."""
+    """event_channel_join_failure がエラーをログに記録し、イベントを設定することをテストします。"""
     failed_channel = "failed_channel"
     await base_twitch_client.event_channel_join_failure(failed_channel)
 
@@ -371,14 +380,14 @@ async def test_event_channel_join_failure(
 
 @pytest.mark.asyncio
 async def test_event_command_error_not_found(base_twitch_client: BaseTwitchClient, mock_context: MagicMock) -> None:
-    """Test event_command_error logs warning for CommandNotFound."""
+    """event_command_error が CommandNotFound の警告をログに記録することをテストします。"""
     error = commands.CommandNotFound("Unknown command", name="unknown")
     await base_twitch_client.event_command_error(mock_context, error)
 
 
 @pytest.mark.asyncio
 async def test_event_command_error_other(base_twitch_client: BaseTwitchClient, mock_context: MagicMock) -> None:
-    """Test event_command_error logs error for other exceptions."""
+    """event_command_error が他の例外のエラーをログに記録することをテストします。"""
     error = ValueError("Some other error")
     await base_twitch_client.event_command_error(mock_context, error)
 
@@ -388,7 +397,7 @@ async def test_event_command_error_other(base_twitch_client: BaseTwitchClient, m
 
 @pytest.mark.asyncio
 async def test_fetch_stream_info_not_connected(base_twitch_client: BaseTwitchClient) -> None:
-    """Test fetch_stream_info raises UnauthorizedError if not connected."""
+    """未接続時に fetch_stream_info が UnauthorizedError を発生させることをテストします。"""
     assert not base_twitch_client.is_connected
     with pytest.raises(exceptions.UnauthorizedError, match="Not connected yet"):
         await base_twitch_client.fetch_stream_info(None)
@@ -398,12 +407,12 @@ async def test_fetch_stream_info_not_connected(base_twitch_client: BaseTwitchCli
 async def test_fetch_stream_info_success_with_user(
     base_twitch_client: BaseTwitchClient,
     mock_channel_info: MagicMock,
-    mock_twitchio_streamer_user: AsyncMock,  # Needed to set connected state
-    mock_twitchio_bot_user: AsyncMock,  # Needed to set connected state
-    mock_twitchio_channel: AsyncMock,  # Needed to set connected state
+    mock_twitchio_streamer_user: AsyncMock,  # 接続状態の設定に必要
+    mock_twitchio_bot_user: AsyncMock,  # 接続状態の設定に必要
+    mock_twitchio_channel: AsyncMock,  # 接続状態の設定に必要
 ) -> None:
-    """Test fetch_stream_info fetches for a specific user."""
-    # Set connected state
+    """fetch_stream_info が特定のユーザーに対してフェッチすることをテストします。"""
+    # 接続状態を設定
     base_twitch_client._BaseTwitchClient__channel = mock_twitchio_channel
     base_twitch_client._BaseTwitchClient__user = mock_twitchio_streamer_user
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
@@ -411,7 +420,7 @@ async def test_fetch_stream_info_success_with_user(
 
     target_user = models.User(id=987, name="targetuser", display_name="TargetUser")
 
-    # Mock fetch_channel directly on the instance
+    # インスタンス上で fetch_channel を直接モック
     base_twitch_client.fetch_channel = AsyncMock(return_value=mock_channel_info)
 
     stream_info = await base_twitch_client.fetch_stream_info(target_user)
@@ -433,7 +442,7 @@ async def test_fetch_stream_info_success_no_user(
     mock_twitchio_bot_user: AsyncMock,
     mock_twitchio_channel: AsyncMock,
 ) -> None:
-    """Test fetch_stream_info fetches for the current channel user if user is None."""
+    """user が None の場合、fetch_stream_info が現在のチャンネルユーザーに対してフェッチすることをテストします。"""
     base_twitch_client._BaseTwitchClient__channel = mock_twitchio_channel
     base_twitch_client._BaseTwitchClient__user = mock_twitchio_streamer_user
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
@@ -445,7 +454,7 @@ async def test_fetch_stream_info_success_no_user(
 
     base_twitch_client.fetch_channel.assert_awaited_once_with(
         mock_twitchio_streamer_user.name
-    )  # Fetches for _user.name
+    )  # _user.name に対してフェッチする
     assert isinstance(stream_info, models.StreamInfo)
     assert stream_info.title == mock_channel_info.title
 
@@ -458,13 +467,13 @@ async def test_fetch_stream_info_no_game(
     mock_twitchio_bot_user: AsyncMock,
     mock_twitchio_channel: AsyncMock,
 ) -> None:
-    """Test fetch_stream_info handles empty game_id correctly."""
+    """fetch_stream_info が空の game_id を正しく処理することをテストします。"""
     base_twitch_client._BaseTwitchClient__channel = mock_twitchio_channel
     base_twitch_client._BaseTwitchClient__user = mock_twitchio_streamer_user
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
     assert base_twitch_client.is_connected
 
-    mock_channel_info.game_id = ""  # Simulate no game set
+    mock_channel_info.game_id = ""  # ゲームが設定されていない状態をシミュレート
 
     base_twitch_client.fetch_channel = AsyncMock(return_value=mock_channel_info)
 
@@ -472,12 +481,12 @@ async def test_fetch_stream_info_no_game(
 
     base_twitch_client.fetch_channel.assert_awaited_once_with(mock_twitchio_streamer_user.name)
     assert isinstance(stream_info, models.StreamInfo)
-    assert stream_info.game is None  # Should be None
+    assert stream_info.game is None  # None になるはず
 
 
 @pytest.mark.asyncio
 async def test_fetch_clips_not_connected(base_twitch_client: BaseTwitchClient) -> None:
-    """Test fetch_clips raises UnauthorizedError if not connected."""
+    """未接続時に fetch_clips が UnauthorizedError を発生させることをテストします。"""
     assert not base_twitch_client.is_connected
     duration = datetime.timedelta(minutes=5)
     with pytest.raises(exceptions.UnauthorizedError, match="Not connected yet"):
@@ -489,11 +498,11 @@ async def test_fetch_clips_not_connected(base_twitch_client: BaseTwitchClient) -
 async def test_fetch_clips_success(
     base_twitch_client: BaseTwitchClient,
     mock_twitchio_streamer_user: AsyncMock,
-    mock_twitchio_bot_user: AsyncMock,  # Needed for connected state
-    mock_twitchio_channel: AsyncMock,  # Needed for connected state
+    mock_twitchio_bot_user: AsyncMock,  # 接続状態に必要
+    mock_twitchio_channel: AsyncMock,  # 接続状態に必要
     mock_twitchio_clip: MagicMock,
 ) -> None:
-    """Test fetch_clips fetches and converts clips correctly."""
+    """fetch_clips がクリップを正しくフェッチし、変換することをテストします。"""
     base_twitch_client._BaseTwitchClient__channel = mock_twitchio_channel
     base_twitch_client._BaseTwitchClient__user = mock_twitchio_streamer_user
     base_twitch_client._BaseTwitchClient__bot_user = mock_twitchio_bot_user
@@ -502,19 +511,19 @@ async def test_fetch_clips_success(
     duration = datetime.timedelta(minutes=10)
     expected_started_at = NOW - duration
 
-    # Mock another clip with anonymous creator
+    # 匿名クリエイターを持つ別のクリップをモック
     mock_clip_anon = MagicMock(spec=twitchio_models.Clip)
     mock_clip_anon.url = "http://clip.test/anon"
     mock_clip_anon.title = "Anon Clip"
     mock_clip_anon.creator = MagicMock(spec=twitchio_models.User)
-    mock_clip_anon.creator.name = None  # Anonymous
+    mock_clip_anon.creator.name = None  # 匿名
 
     mock_twitchio_streamer_user.fetch_clips.return_value = [mock_twitchio_clip, mock_clip_anon]
 
     result = await base_twitch_client.fetch_clips(duration)
 
     mock_twitchio_streamer_user.fetch_clips.assert_awaited_once()
-    # Check that started_at was passed correctly
+    # started_at が正しく渡されたかを確認
     call_args, call_kwargs = mock_twitchio_streamer_user.fetch_clips.call_args
     assert "started_at" in call_kwargs
     assert call_kwargs["started_at"] == expected_started_at
@@ -528,4 +537,4 @@ async def test_fetch_clips_success(
     assert isinstance(result[1], models.Clip)
     assert result[1].url == mock_clip_anon.url
     assert result[1].title == mock_clip_anon.title
-    assert result[1].creator == "Anonymous"  # Check anonymous handling
+    assert result[1].creator == "Anonymous"  # 匿名処理を確認

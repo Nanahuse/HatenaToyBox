@@ -27,7 +27,7 @@ PARTIAL_CHATTER_NAME = "partial_user"
 
 @pytest.fixture
 def mock_bot_user() -> MagicMock:
-    """Mocks a twitchio_models.User representing the bot."""
+    """ボットを表す twitchio_models.User をモックします。"""
     user = MagicMock(spec=twitchio_models.User)
     user.id = BOT_USER_ID
     user.name = BOT_USER_NAME
@@ -37,9 +37,9 @@ def mock_bot_user() -> MagicMock:
 
 @pytest.fixture
 def mock_chatter() -> MagicMock:
-    """Mocks a twitchio_models.Chatter."""
+    """twitchio_models.Chatter をモックします。"""
     chatter = MagicMock(spec=twitchio_models.Chatter)
-    chatter.id = str(CHATTER_ID)  # Chatter ID is usually string in tags
+    chatter.id = str(CHATTER_ID)  # Chatter ID は通常タグでは文字列
     chatter.name = CHATTER_NAME
     chatter.display_name = CHATTER_DISPLAY_NAME
     return chatter
@@ -47,22 +47,22 @@ def mock_chatter() -> MagicMock:
 
 @pytest.fixture
 def mock_partial_chatter() -> MagicMock:
-    """Mocks a twitchio_models.PartialChatter."""
+    """twitchio_models.PartialChatter をモックします。"""
     chatter = MagicMock(spec=twitchio_models.PartialChatter)
-    chatter.id = str(PARTIAL_CHATTER_ID)  # PartialChatter ID might also be string
+    chatter.id = str(PARTIAL_CHATTER_ID)  # PartialChatter ID も文字列の場合がある
     chatter.name = PARTIAL_CHATTER_NAME
-    # PartialChatter doesn't have display_name directly
+    # PartialChatter は直接 display_name を持たない
     return chatter
 
 
 @pytest.fixture
 def mock_message_base() -> MagicMock:
-    """Provides a base MagicMock for twitchio_models.Message."""
+    """twitchio_models.Message のベースとなる MagicMock を提供します。"""
     msg = MagicMock(spec=twitchio_models.Message)
     msg.content = "Default message content"
     msg.echo = False
     msg.author = None
-    msg.tags = {}  # Default to empty tags
+    msg.tags = {}  # デフォルトは空のタグ
     return msg
 
 
@@ -96,9 +96,9 @@ def mock_message_base() -> MagicMock:
     ],
 )
 def test_emote_tag_parse_tags(emotes_tag: str, expected_tags: list[EmoteTag]) -> None:
-    """Test parsing of the raw emotes tag string."""
+    """生の emotes タグ文字列のパースをテストします。"""
     result = list(EmoteTag.parse_tags(emotes_tag))
-    # Sort both lists by begin index for consistent comparison
+    # 一貫した比較のために、両方のリストを開始インデックスでソート
     result.sort(key=lambda x: x.begin)
     expected_tags.sort(key=lambda x: x.begin)
     assert result == expected_tags
@@ -111,7 +111,7 @@ def test_emote_tag_parse_tags(emotes_tag: str, expected_tags: list[EmoteTag]) ->
     ("content", "emotes_tag", "expected_output"),
     [
         ("Hello world", "", ["Hello world"]),
-        ("Hello world", None, ["Hello world"]),  # Handle None case if tags missing
+        ("Hello world", None, ["Hello world"]),  # タグがない場合に None ケースを処理
         ("Kappa", "25:0-4", [models.Emote(id="25", text="Kappa")]),
         (
             "Kappa Keepo",
@@ -150,16 +150,16 @@ def test_emote_tag_parse_tags(emotes_tag: str, expected_tags: list[EmoteTag]) ->
         ),
         (
             "No emotes here",
-            "12345:100-105",  # Emote indices out of bounds
+            "12345:100-105",  # エモートのインデックスが範囲外
             ["No emotes here", models.Emote(id="12345", text="")],
         ),
     ],
 )
 def test_split_by_emote(content: str, emotes_tag: str | None, expected_output: list[str | models.Emote]) -> None:
-    """Test splitting message content by emotes."""
+    """メッセージの内容をエモートで分割するテスト。"""
     if emotes_tag is None:  # noqa: SIM108
-        # Simulate case where 'emotes' key is missing
-        result = list(split_by_emote(content, ""))  # Pass empty string if None
+        # 'emotes' キーがない場合をシミュレート
+        result = list(split_by_emote(content, ""))  # None の場合は空文字列を渡す
     else:
         result = list(split_by_emote(content, emotes_tag))
     assert result == expected_output
@@ -169,11 +169,11 @@ def test_split_by_emote(content: str, emotes_tag: str | None, expected_output: l
 
 
 def test_cast_message_echo(mock_message_base: MagicMock, mock_bot_user: MagicMock) -> None:
-    """Test casting an echo message (from the bot)."""
+    """エコーメッセージ（ボットからのメッセージ）のキャストをテストします。"""
     mock_message_base.content = "Bot message"
     mock_message_base.echo = True
-    mock_message_base.author = None  # Author is irrelevant for echo
-    mock_message_base.tags = {}  # No emotes
+    mock_message_base.author = None  # エコーの場合、author は無関係
+    mock_message_base.tags = {}  # エモートなし
 
     result = cast_message(mock_message_base, mock_bot_user)
 
@@ -187,11 +187,11 @@ def test_cast_message_echo(mock_message_base: MagicMock, mock_bot_user: MagicMoc
 
 
 def test_cast_message_chatter(mock_message_base: MagicMock, mock_bot_user: MagicMock, mock_chatter: MagicMock) -> None:
-    """Test casting a message from a regular Chatter."""
+    """通常の Chatter からのメッセージのキャストをテストします。"""
     mock_message_base.content = "User message"
     mock_message_base.echo = False
     mock_message_base.author = mock_chatter
-    mock_message_base.tags = {}  # No emotes
+    mock_message_base.tags = {}  # エモートなし
 
     result = cast_message(mock_message_base, mock_bot_user)
 
@@ -207,11 +207,11 @@ def test_cast_message_chatter(mock_message_base: MagicMock, mock_bot_user: Magic
 def test_cast_message_partial_chatter(
     mock_message_base: MagicMock, mock_bot_user: MagicMock, mock_partial_chatter: MagicMock
 ) -> None:
-    """Test casting a message from a PartialChatter."""
+    """PartialChatter からのメッセージのキャストをテストします。"""
     mock_message_base.content = "Partial user message"
     mock_message_base.echo = False
     mock_message_base.author = mock_partial_chatter
-    mock_message_base.tags = {}  # No emotes
+    mock_message_base.tags = {}  # エモートなし
 
     result = cast_message(mock_message_base, mock_bot_user)
 
@@ -220,15 +220,15 @@ def test_cast_message_partial_chatter(
     assert result.is_echo is False
     assert result.author.id == PARTIAL_CHATTER_ID
     assert result.author.name == PARTIAL_CHATTER_NAME
-    assert result.author.display_name == PARTIAL_CHATTER_NAME  # Falls back to name
+    assert result.author.display_name == PARTIAL_CHATTER_NAME  # name にフォールバック
     assert result.parsed_content == ["Partial user message"]
 
 
 def test_cast_message_unknown_author(mock_message_base: MagicMock, mock_bot_user: MagicMock) -> None:
-    """Test casting a message with an unknown author type (falls back to Anonymous)."""
+    """未知の author タイプを持つメッセージのキャストをテストします（Anonymous にフォールバック）。"""
     mock_message_base.content = "Unknown author message"
     mock_message_base.echo = False
-    mock_message_base.author = object()  # Some unexpected type
+    mock_message_base.author = object()  # 何か予期しない型
     mock_message_base.tags = {}
 
     result = cast_message(mock_message_base, mock_bot_user)
@@ -236,16 +236,16 @@ def test_cast_message_unknown_author(mock_message_base: MagicMock, mock_bot_user
     assert isinstance(result, models.Message)
     assert result.content == "Unknown author message"
     assert result.is_echo is False
-    assert result.author.id == 0  # Default ID
-    assert result.author.name == "anonymous"  # Default name
-    assert result.author.display_name == "Anonymous"  # Default display name
+    assert result.author.id == 0  # デフォルト ID
+    assert result.author.name == "anonymous"  # デフォルト名
+    assert result.author.display_name == "Anonymous"  # デフォルト表示名
     assert result.parsed_content == ["Unknown author message"]
 
 
 def test_cast_message_with_emotes(
     mock_message_base: MagicMock, mock_bot_user: MagicMock, mock_chatter: MagicMock
 ) -> None:
-    """Test casting a message that includes emotes."""
+    """エモートを含むメッセージのキャストをテストします。"""
     content = "Hello Kappa world LUL"
     emotes_tag = "25:6-10/425618:18-20"
     mock_message_base.content = content
@@ -272,12 +272,12 @@ def test_cast_message_with_emotes(
 def test_cast_message_no_emotes_tag(
     mock_message_base: MagicMock, mock_bot_user: MagicMock, mock_chatter: MagicMock
 ) -> None:
-    """Test casting a message where the tags dictionary is missing the 'emotes' key."""
+    """tags 辞書に 'emotes' キーがないメッセージのキャストをテストします。"""
     content = "Simple message"
     mock_message_base.content = content
     mock_message_base.echo = False
     mock_message_base.author = mock_chatter
-    mock_message_base.tags = {"some_other_tag": "value"}  # 'emotes' key is missing
+    mock_message_base.tags = {"some_other_tag": "value"}  # 'emotes' キーがない
 
     result = cast_message(mock_message_base, mock_bot_user)
 
@@ -285,18 +285,18 @@ def test_cast_message_no_emotes_tag(
     assert result.content == content
     assert result.is_echo is False
     assert result.author.id == CHATTER_ID
-    assert result.parsed_content == [content]  # Should just be the raw content
+    assert result.parsed_content == [content]  # 生の内容のみになるはず
 
 
 def test_cast_message_empty_emotes_tag(
     mock_message_base: MagicMock, mock_bot_user: MagicMock, mock_chatter: MagicMock
 ) -> None:
-    """Test casting a message where the 'emotes' tag value is an empty string."""
+    """'emotes' タグの値が空文字列であるメッセージのキャストをテストします。"""
     content = "Another simple message"
     mock_message_base.content = content
     mock_message_base.echo = False
     mock_message_base.author = mock_chatter
-    mock_message_base.tags = {"emotes": ""}  # Empty emotes tag
+    mock_message_base.tags = {"emotes": ""}  # 空の emotes タグ
 
     result = cast_message(mock_message_base, mock_bot_user)
 
@@ -304,15 +304,15 @@ def test_cast_message_empty_emotes_tag(
     assert result.content == content
     assert result.is_echo is False
     assert result.author.id == CHATTER_ID
-    assert result.parsed_content == [content]  # Should just be the raw content
+    assert result.parsed_content == [content]  # 生の内容のみになるはず
 
 
 def test_cast_message_chatter_name_fallback(mock_message_base: MagicMock, mock_bot_user: MagicMock) -> None:
-    """Test casting where Chatter display_name is None, falling back to name."""
+    """Chatter の display_name が None で、name にフォールバックするキャストをテストします。"""
     mock_chatter_no_display = MagicMock(spec=twitchio_models.Chatter)
     mock_chatter_no_display.id = str(CHATTER_ID)
     mock_chatter_no_display.name = CHATTER_NAME
-    mock_chatter_no_display.display_name = None  # No display name
+    mock_chatter_no_display.display_name = None  # 表示名なし
 
     mock_message_base.content = "User message"
     mock_message_base.echo = False
@@ -323,15 +323,15 @@ def test_cast_message_chatter_name_fallback(mock_message_base: MagicMock, mock_b
 
     assert result.author.id == CHATTER_ID
     assert result.author.name == CHATTER_NAME
-    assert result.author.display_name == CHATTER_NAME  # Falls back to name
+    assert result.author.display_name == CHATTER_NAME  # name にフォールバック
 
 
 def test_cast_message_bot_name_fallback(mock_message_base: MagicMock) -> None:
-    """Test casting echo where bot display_name is None, falling back to name."""
+    """ボットの display_name が None で、name にフォールバックするエコーメッセージのキャストをテストします。"""
     mock_bot_no_display = MagicMock(spec=twitchio_models.User)
     mock_bot_no_display.id = BOT_USER_ID
     mock_bot_no_display.name = BOT_USER_NAME
-    mock_bot_no_display.display_name = None  # No display name
+    mock_bot_no_display.display_name = None  # 表示名なし
 
     mock_message_base.content = "Bot message"
     mock_message_base.echo = True
@@ -342,4 +342,4 @@ def test_cast_message_bot_name_fallback(mock_message_base: MagicMock) -> None:
 
     assert result.author.id == BOT_USER_ID
     assert result.author.name == BOT_USER_NAME
-    assert result.author.display_name == BOT_USER_NAME  # Falls back to name
+    assert result.author.display_name == BOT_USER_NAME  # name にフォールバック
