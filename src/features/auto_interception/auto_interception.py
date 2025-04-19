@@ -47,7 +47,7 @@ class AutoInterception(Feature[SystemConfig, UserConfig]):
 
         self.logger.info(
             "Intercept %d seconds later - target: %s",
-            self.user_config.reaction_delay,
+            self.user_config.reaction_delay.total_seconds(),
             event.raider.display_name,
         )
 

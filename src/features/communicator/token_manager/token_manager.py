@@ -81,6 +81,14 @@ class TokenManager:
 
         self._logger.debug("Stopped")
 
+    def clear(self) -> None:
+        self._logger.debug("Clearing token")
+        if self._token_file.data is not None:
+            self._token_file.clear()
+
+        if self._update_routine is not None:
+            self._update_routine.restart()
+
     @property
     def is_running(self) -> bool:
         return self._update_routine is not None

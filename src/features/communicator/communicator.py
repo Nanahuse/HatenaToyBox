@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, override
@@ -46,7 +45,7 @@ class Communicator(Feature[SystemConfig, UserConfig]):
         self._announce_queue = asyncio.Queue[models.Announcement]()
         self._shoutout_queue = asyncio.Queue[models.User]()
 
-        self._client_manager = ProcessManager[ClientManager]()
+        self._client_manager: ProcessManager[ClientManager] = ProcessManager()
         self._update_detector = UpdateDetector(self.logger, self._event_publisher)
 
         self._routine_manager = routines.RoutineManager()
@@ -104,10 +103,6 @@ class Communicator(Feature[SystemConfig, UserConfig]):
             clips = await client.fetch_clips(datetime.timedelta(minutes=10))
 
             self._update_detector.initialize(stream_info, clips)
-
-            with contextlib.suppress(RuntimeError):
-                await self._polling()
-
         except Exception:
             self.logger.exception("Failed to initialize update detector")
 

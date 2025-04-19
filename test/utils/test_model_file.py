@@ -1,12 +1,12 @@
 import json
 import logging
 from pathlib import Path
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, mock_open, patch
 
 import pytest
 from pydantic import BaseModel
 
-from utils.model_file import ModelFile
+from utils.model_file import ModelFile, ModelFileError
 
 
 class Model(BaseModel):
@@ -102,3 +102,23 @@ def test_model_file_clear_not_exist(mock_logger: MagicMock, mock_file: Path) -> 
     assert model_file.data is None
     assert not mock_file.exists()
     mock_logger.debug.assert_called_with("Clearing data from %s", mock_file)
+
+
+def test_model_file_update_oserror_on_write(mock_logger: MagicMock, mock_file: Path) -> None:
+    model_file = ModelFile(Model, mock_file, mock_logger)
+    assert model_file.data is None
+
+    new_data = Model(name="new", value=2)
+
+    # mock initialize
+    mock_file_handle = MagicMock()
+    mock_file_handle.write.side_effect = OSError("Disk full")  # write で OSError
+    m_open = mock_open()
+    m_open.return_value.__enter__.return_value = mock_file_handle
+
+    with patch("pathlib.Path.open", m_open):  # noqa: SIM117
+        with pytest.raises(ModelFileError):
+            model_file.update(new_data)
+
+    # ensure data is not updated
+    assert model_file.data is None

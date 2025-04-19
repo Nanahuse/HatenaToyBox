@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 from enum import StrEnum
 from pathlib import Path
@@ -40,11 +41,11 @@ class ClientManager:
 
         self._close_event = asyncio.Event()
 
-        self._twitch_client_manager = ProcessManager[Client]()
-        self._twitch_token_manager = ProcessManager[TokenManager]()
+        self._twitch_client_manager: ProcessManager[Client] = ProcessManager()
+        self._twitch_token_manager: ProcessManager[TokenManager] = ProcessManager()
 
-        self._stream_info_manager = ProcessManager[StreamInfoManager]()
-        self._stream_info_token_manager = ProcessManager[TokenManager]()
+        self._stream_info_manager: ProcessManager[StreamInfoManager] = ProcessManager()
+        self._stream_info_token_manager: ProcessManager[TokenManager] = ProcessManager()
 
     async def get_twitch_client(self) -> Client | None:
         return await self._twitch_client_manager.get()
@@ -104,6 +105,7 @@ class ClientManager:
             await asyncio.wait_for(connection_event.wait(), timeout=10)
         except TimeoutError:
             await client.close()
+            await task
             return
 
         await self._twitch_client_manager.store(client, task)
@@ -149,10 +151,20 @@ class ClientManager:
         )
         task = asyncio.create_task(self._run_client(manager))
 
-        try:
+        with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(connection_event.wait(), timeout=10)
-        except TimeoutError:
+
+        if not manager.is_connected or not manager.is_streamer:
+            self._logger.error(
+                "stream info manager is not connected."
+                if not manager.is_connected
+                else "stream info manager is not streamer."
+            )
             await manager.close()
+            await task
+            token_manager = await self._stream_info_token_manager.get()
+            if token_manager is not None:
+                token_manager.clear()
             return
 
         self._logger.debug("stream info manager started.")

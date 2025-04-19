@@ -6,6 +6,7 @@ import json
 from typing import TYPE_CHECKING, Any, Self
 
 import aiohttp
+from pydantic import ValidationError
 
 from schemas import models
 
@@ -65,13 +66,13 @@ class Client:
             for model in possible_models:
                 try:
                     return model.model_validate(data)
-                except ValueError:
+                except ValidationError:
                     pass
 
             response.raise_for_status()
 
-            msg = f"Unknown response error. : {json.dumps(data)}"
-            raise exceptions.UnknownResponseError(msg)
+        msg = f"Unknown response error. : {json.dumps(data)}"
+        raise exceptions.UnknownResponseError(msg)
 
     async def get_device_code(self) -> models.TwitchVerification:
         payload = {
@@ -130,7 +131,6 @@ class Client:
                 constants.AUTHORIZE_URL,
                 payload,
             )
+            return response_to_token(response, self._scopes)
         except Exception as e:
             raise exceptions.AuthorizationError from e
-
-        return response_to_token(response, self._scopes)

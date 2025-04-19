@@ -41,6 +41,7 @@ class MessageTranslator(Feature[SystemConfig, UserConfig]):
             return False
 
         self._translator = None
+        self._identifier = None
 
         if self.user_config is None:
             return True
