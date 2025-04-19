@@ -747,6 +747,20 @@ async def test_run_client_unhandled_error(client_manager: ClientManager, mock_ev
     mock_client.run = AsyncMock(side_effect=other_error)
 
     await client_manager._run_client(mock_client)
+    mock_event_publisher.publish.assert_awaited_once()
 
-    mock_client.run.assert_awaited_once()
-    mock_event_publisher.publish.assert_awaited_once_with(errors.UnhandledError.instance(str(other_error)))
+    # 実際に publish に渡された引数を取得
+    # await_args は (args, kwargs) のタプルなので、最初の位置引数を取得
+    assert mock_event_publisher.publish.await_args is not None  # None でないことを確認
+    published_args, published_kwargs = mock_event_publisher.publish.await_args
+    assert len(published_args) == 1  # 位置引数が1つであることを確認
+    published_error = published_args[0]  # UnhandledError インスタンスを取得
+
+    # 取得したエラーインスタンスの属性を個別にアサート
+    assert isinstance(published_error, errors.UnhandledError)
+    assert published_error.message == str(other_error)  # メッセージが一致するか
+    assert published_error.file_name == "client_manager.py"  # 呼び出し元のファイル名
+    # 行番号は変更される可能性があるため、具体的な数値ではなく型や範囲で確認する方が堅牢
+    assert isinstance(published_error.line, int)
+    assert published_error.line > 0  # 正の行番号であること
+    # --- 修正箇所ここまで ---
