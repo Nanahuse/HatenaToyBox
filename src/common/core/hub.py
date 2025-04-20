@@ -15,6 +15,12 @@ class Hub:
         self._event_controller = EventController()
         self._service_controller = ServiceController()
 
+    async def run(self) -> None:
+        await self._event_controller.run()
+
+    async def close(self) -> None:
+        await self._event_controller.close()
+
     def create_publisher(self) -> EventPublisher:
         return EventPublisher(self._event_controller)
 
@@ -30,6 +36,3 @@ class Hub:
 
     def add_event_handler[T: BaseEvent](self, event_type: type[T], handler: EventHandler[T]) -> None:
         self._event_controller.add_handler(event_type, handler)
-
-    async def run(self) -> None:
-        await self._event_controller.run()

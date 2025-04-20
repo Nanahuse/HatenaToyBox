@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Any, Protocol, final
 from common.base_model import BaseConfig
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
-
     from common.core import Hub
 
     from .set_config_service import ConfigData
@@ -19,6 +17,7 @@ logger = logging.getLogger("Feat")
 class FeatureProtocol(Protocol):
     def __init__(self, hub: Hub, system_config: ConfigData) -> None: ...
     async def run(self) -> None: ...
+    async def close(self) -> None: ...
     async def set_user_config(self, config: ConfigData | None) -> bool: ...
 
 
@@ -70,14 +69,6 @@ class Feature[SystemConfig: BaseConfig, UserConfig: BaseConfig]:
 
     async def close(self) -> None:
         self._event.set()
-
-    @final
-    def store_task(self, task: asyncio.Task[Any]) -> None:
-        self._task_queue.put_nowait(task)
-
-    @final
-    def create_task(self, coroutine: Coroutine[Any, Any, Any]) -> None:
-        self._task_queue.put_nowait(asyncio.create_task(coroutine))
 
     async def set_user_config(self, config: ConfigData | None) -> bool:
         user_config = None if config is None else self._user_config_type.model_validate(config)

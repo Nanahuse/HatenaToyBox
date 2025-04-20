@@ -31,6 +31,8 @@ dev-dependencies = [
     "ruff>=0.8.1",
     "types-cachetools>=5.5.0.20240820",
     "mypy>=1.15.0",
+    "pytest-cov>=6.1.1",
+    "freezegun>=1.5.1",
 ]
 
 [tool.uv.sources]
@@ -40,14 +42,23 @@ twitchio = { git = "https://github.com/Nanahuse/TwitchIO.git", rev = "feature/ad
 [tool.ruff]
 line-length = 120
 lint.select = ["ALL"]
-lint.ignore = ["FIX002", "S101", "TRY300", "COM812", "D", "TD"]
+lint.ignore = ["FIX002", "S101", "TRY300", "COM812", "RUF002", "D", "TD"]
 lint.fixable = ["ALL"]
 
 [tool.ruff.format]
 docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
-"test/*" = ["INP001", "SLF001"]
+"test/*" = [
+    "ERA001",
+    "FBT003",
+    "INP001",
+    "S105",
+    "S106",
+    "SLF001",
+    "PLR0913",
+    "PLR2004",
+]
 
 
 [tool.pytest.ini_options]
@@ -56,7 +67,18 @@ filterwarnings = [
     "ignore:Inheritance class EventSubClient from web.Application is discouraged:DeprecationWarning",
 ]
 asyncio_default_fixture_loop_scope = "function"
+addopts = [
+    "--cov=src",
+    "--cov-report=term",
+    "--cov-report=html",
+    "--cov-fail-under=100",
+]
 
+[tool.coverage.run]
+omit = ["app.py"]
+
+[tool.coverage.report]
+exclude_lines = ["if TYPE_CHECKING:", "raise NotImplementedError"]
 
 [tool.mypy]
 strict = true
