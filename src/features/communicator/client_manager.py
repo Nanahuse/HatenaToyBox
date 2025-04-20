@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import datetime
 import logging
 from enum import StrEnum
 from pathlib import Path
@@ -14,6 +15,8 @@ from utils.process_manager import Process, ProcessManager
 from . import constants
 from .token_manager import TokenManager
 from .twitchio_adaptor import Client, StreamInfoManager, TwitchClient
+
+CLIENT_LOGIN_TIMEOUT = datetime.timedelta(seconds=10)
 
 
 class TokenTag(StrEnum):
@@ -102,7 +105,7 @@ class ClientManager:
         task = asyncio.create_task(self._run_client(client))
 
         try:
-            await asyncio.wait_for(connection_event.wait(), timeout=10)
+            await asyncio.wait_for(connection_event.wait(), timeout=CLIENT_LOGIN_TIMEOUT.total_seconds())
         except TimeoutError:
             await client.close()
             await task
@@ -152,7 +155,7 @@ class ClientManager:
         task = asyncio.create_task(self._run_client(manager))
 
         with contextlib.suppress(TimeoutError):
-            await asyncio.wait_for(connection_event.wait(), timeout=10)
+            await asyncio.wait_for(connection_event.wait(), timeout=CLIENT_LOGIN_TIMEOUT.total_seconds())
 
         if not manager.is_connected or not manager.is_streamer:
             self._logger.error(

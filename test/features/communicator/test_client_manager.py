@@ -2,10 +2,9 @@
 
 import asyncio
 import datetime
-import inspect
 import logging
 from asyncio import Event as RealAsyncioEvent
-from collections.abc import Awaitable, Generator
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import ANY, AsyncMock, MagicMock, Mock, call, patch
 
@@ -31,21 +30,6 @@ from utils.process_manager import Process, ProcessManager
 TEST_CHANNEL = "testchannel"
 TEST_TOKEN_FILE_DIR = Path("/fake/token/dir")
 TEST_STREAM_INFO_DIR = Path("/fake/streaminfo/dir")
-
-# --- Mocks ---
-
-
-async def simulate_wait_for_success(coro: Awaitable[None], *, timeout: float | None = None) -> None:  # noqa: ARG001, ASYNC109
-    """wait_for の side_effect: コルーチンを await し、None (Event.wait() のように) を返します。"""
-    await coro  # 渡されたコルーチン (mock_connection_event.wait) を明示的に await します
-    # Event.wait() が成功時に返す None を返します
-
-
-async def await_coro_side_effect(coro: Awaitable[None], *, timeout: float | None = None) -> None:  # noqa: ARG001, ASYNC109
-    """AsyncMock の side_effect: 最初の引数 (コルーチン) を await し、タイムアウトを受け入れて無視します。"""
-    # このモックの目的では、タイムアウトのキーワード引数を受け入れますが、使用する必要はありません。
-    # タイムアウト前に成功をシミュレートするために、単にコルーチンを await します。
-    return await coro
 
 
 # --- Fixtures ---
@@ -328,12 +312,9 @@ async def test_start_verification_streamer(
     )
 
 
-@pytest.mark.filterwarnings("ignore:coroutine 'AsyncMockMixin._execute_mock_call' was never awaited:RuntimeWarning")
 @pytest.mark.asyncio
 @patch.object(ClientManager, "_run_client", new_callable=AsyncMock)
-@patch("features.communicator.client_manager.asyncio.wait_for")
 async def test_initialize_twitch_client_success(
-    mock_wait_for: AsyncMock,
     mock_run_client: AsyncMock,
     client_manager: ClientManager,
     mock_twitch_client_cls: MagicMock,
@@ -344,8 +325,6 @@ async def test_initialize_twitch_client_success(
 ) -> None:
     """TwitchClient の正常な初期化をテストします。"""
     mock_twitch_client_cls.return_value = mock_twitch_client_instance
-    # wait_for 中に接続イベントが設定されるのをシミュレートします
-    mock_wait_for.side_effect = simulate_wait_for_success  # 成功をシミュレートします
 
     with (
         patch("features.communicator.client_manager.TwitchClient", mock_twitch_client_cls),
@@ -365,14 +344,6 @@ async def test_initialize_twitch_client_success(
     # _run_client がクライアントインスタンスで呼び出されたことをアサートします
     mock_run_client.assert_called_once_with(mock_twitch_client_instance)
 
-    # 接続待機のために wait_for が正しく呼び出されたことをアサートします
-    mock_wait_for.assert_awaited_once()
-    actual_await_args, actual_await_kwargs = mock_wait_for.await_args  # type: ignore[misc]
-    assert len(actual_await_args) == 1
-    assert inspect.iscoroutine(actual_await_args[0])
-    assert actual_await_kwargs == {"timeout": 10}
-
-    # これにより、wait_for に渡されたコルーチンがイベントから生成されたことが確認されます。
     mock_connection_event.wait.assert_awaited_once()
     # クライアントが保存されたことをアサートします
     client_manager._twitch_client_manager.store.assert_awaited_once_with(
@@ -393,30 +364,25 @@ async def test_initialize_twitch_client_success(
 
 @pytest.mark.asyncio
 @patch.object(ClientManager, "_run_client", new_callable=AsyncMock)
-@patch("features.communicator.client_manager.asyncio.wait_for", side_effect=TimeoutError)
 async def test_initialize_twitch_client_timeout(
-    mock_wait_for: AsyncMock,
     mock_run_client: AsyncMock,
     client_manager: ClientManager,
     mock_twitch_client_cls: MagicMock,
     mock_twitch_client_instance: MagicMock,
     mock_token: models.Token,
     mock_event_publisher: AsyncMock,
-    mock_connection_event: MagicMock,
 ) -> None:
     """TwitchClient の初期化タイムアウトをテストします。"""
     mock_twitch_client_cls.return_value = mock_twitch_client_instance
 
     with (
+        patch("features.communicator.client_manager.CLIENT_LOGIN_TIMEOUT", datetime.timedelta(seconds=0.1)),
         patch("features.communicator.client_manager.TwitchClient", mock_twitch_client_cls),
-        patch("features.communicator.client_manager.asyncio.Event", return_value=mock_connection_event),
     ):
         await client_manager._initialize_twitch_client(mock_token)
 
     # TwitchClient がインスタンス化されたことをアサートします
     mock_twitch_client_cls.assert_called_once()
-    # 接続待機をアサートします
-    mock_wait_for.assert_awaited_once()
 
     # タイムアウト時にクライアントがクローズされたことをアサートします
     mock_twitch_client_instance.close.assert_awaited_once()
@@ -432,12 +398,9 @@ async def test_initialize_twitch_client_timeout(
     mock_event_publisher.publish.assert_not_awaited()
 
 
-@pytest.mark.filterwarnings("ignore:coroutine 'AsyncMockMixin._execute_mock_call' was never awaited:RuntimeWarning")
 @pytest.mark.asyncio
 @patch.object(ClientManager, "_run_client", new_callable=AsyncMock)
-@patch("features.communicator.client_manager.asyncio.wait_for")
 async def test_initialize_twitch_client_is_streamer_feature_enabled(
-    mock_wait_for: AsyncMock,
     mock_run_client: AsyncMock,
     client_manager: ClientManager,
     mock_twitch_client_cls: MagicMock,
@@ -451,7 +414,6 @@ async def test_initialize_twitch_client_is_streamer_feature_enabled(
     mock_twitch_client_cls.return_value = mock_twitch_client_instance
     mock_twitch_client_instance.is_streamer = True  # ボットはストリーマーです
     client_manager._enable_stream_info_command = True  # 機能は有効です
-    mock_wait_for.side_effect = simulate_wait_for_success  # 成功をシミュレートします
 
     # 直接呼び出しのために StreamInfoManager の init をパッチします
     with (
@@ -489,20 +451,13 @@ async def test_initialize_twitch_client_is_streamer_feature_enabled(
         ANY,
     )
 
-    # 接続待機が発生したことをアサートします (2回)
-    assert mock_wait_for.await_count == 2  # wait_for が2回 await されたことを確認します
-
     # *正しい* イベントモックの wait メソッドが2回 await されたことをアサートします
-    # このアサーションは、simulate_wait_for_success がコルーチンを await するため、パスするはずです
     assert mock_connection_event.wait.await_count == 2
     mock_connection_event.wait.assert_has_awaits([call(), call()])
 
 
-@pytest.mark.filterwarnings("ignore:coroutine 'AsyncMockMixin._execute_mock_call' was never awaited:RuntimeWarning")
 @pytest.mark.asyncio
-@patch("features.communicator.client_manager.asyncio.wait_for")
 async def test_initialize_twitch_client_not_streamer_feature_enabled(
-    mock_wait_for: AsyncMock,
     client_manager: ClientManager,
     mock_twitch_client_cls: MagicMock,
     mock_twitch_client_instance: MagicMock,
@@ -514,15 +469,12 @@ async def test_initialize_twitch_client_not_streamer_feature_enabled(
     mock_twitch_client_cls.return_value = mock_twitch_client_instance
     mock_twitch_client_instance.is_streamer = False  # ボットはストリーマーではありません
     client_manager._enable_stream_info_command = True  # 機能は有効です
-    mock_wait_for.side_effect = simulate_wait_for_success  # 成功をシミュレートします
 
     with (
         patch("features.communicator.client_manager.TwitchClient", mock_twitch_client_cls),
         patch("features.communicator.client_manager.TokenManager", mock_token_manager_cls) as patched_tm_cls,
         patch("features.communicator.client_manager.StreamInfoManager"),
-        patch(
-            "features.communicator.client_manager.asyncio.Event", return_value=mock_connection_event
-        ),  # return_value を追加
+        patch("features.communicator.client_manager.asyncio.Event", return_value=mock_connection_event),
     ):
         await client_manager._initialize_twitch_client(mock_token)
 
@@ -538,16 +490,12 @@ async def test_initialize_twitch_client_not_streamer_feature_enabled(
     client_manager._stream_info_token_manager.update.assert_awaited_once_with(patched_tm_cls.return_value)
     # StreamInfoManager が直接初期化されなかったことをアサートします
     client_manager._stream_info_manager.store.assert_not_called()
-    # 接続待機をアサートします
-    mock_wait_for.assert_awaited_once()
     # 正しいイベントモックの wait メソッドが await されたことをアサートします
     mock_connection_event.wait.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-@patch("features.communicator.client_manager.asyncio.wait_for")
 async def test_initialize_twitch_client_feature_disabled(
-    mock_wait_for: AsyncMock,
     client_manager: ClientManager,
     mock_twitch_client_cls: MagicMock,
     mock_twitch_client_instance: MagicMock,
@@ -557,7 +505,6 @@ async def test_initialize_twitch_client_feature_disabled(
     """ストリーム情報コマンド機能が無効な場合の _initialize_twitch_client をテストします。"""
     mock_twitch_client_cls.return_value = mock_twitch_client_instance
     client_manager._enable_stream_info_command = False  # 機能は無効です
-    mock_wait_for.return_value = None  # 成功をシミュレートします (return_value を使用)
 
     with (
         patch("features.communicator.client_manager.TwitchClient", mock_twitch_client_cls),
@@ -573,16 +520,11 @@ async def test_initialize_twitch_client_feature_disabled(
     # StreamInfoManager が初期化されなかったことをアサートします
     patched_sim_cls.assert_not_called()
     client_manager._stream_info_manager.store.assert_not_called()
-    # 接続待機をアサートします
-    mock_wait_for.assert_awaited_once()
 
 
-@pytest.mark.filterwarnings("ignore:coroutine 'AsyncMockMixin._execute_mock_call' was never awaited:RuntimeWarning")
 @pytest.mark.asyncio
 @patch.object(ClientManager, "_run_client", new_callable=AsyncMock)
-@patch("features.communicator.client_manager.asyncio.wait_for")
 async def test_initialize_stream_info_manager_success(
-    mock_wait_for: AsyncMock,
     mock_run_client: AsyncMock,
     client_manager: ClientManager,
     mock_stream_info_manager_cls: MagicMock,
@@ -592,7 +534,6 @@ async def test_initialize_stream_info_manager_success(
 ) -> None:
     """StreamInfoManager の正常な初期化をテストします。"""
     mock_stream_info_manager_cls.return_value = mock_stream_info_manager_instance
-    mock_wait_for.side_effect = simulate_wait_for_success  # 成功をシミュレートします
 
     with (
         patch("features.communicator.client_manager.StreamInfoManager", mock_stream_info_manager_cls),
@@ -613,8 +554,6 @@ async def test_initialize_stream_info_manager_success(
     # _run_client が StreamInfoManager で呼び出されたことをアサートします
     mock_run_client.assert_called_once_with(mock_stream_info_manager_instance)
 
-    # 接続待機をアサートします
-    mock_wait_for.assert_awaited_once()
     # mock_connection_event.wait が await されたことを確認します
     mock_connection_event.wait.assert_awaited_once()
 
@@ -627,16 +566,13 @@ async def test_initialize_stream_info_manager_success(
 
 @pytest.mark.asyncio
 @patch.object(ClientManager, "_run_client", new_callable=AsyncMock)
-@patch("features.communicator.client_manager.asyncio.wait_for", side_effect=TimeoutError)
 async def test_initialize_stream_info_manager_timeout(
-    mock_wait_for: AsyncMock,
     mock_run_client: AsyncMock,
     client_manager: ClientManager,
     mock_stream_info_manager_cls: MagicMock,
     mock_stream_info_manager_instance: MagicMock,
     mock_token: models.Token,
-    mock_connection_event: MagicMock,
-    mock_token_manager_instance: MagicMock,  # 引数を追加
+    mock_token_manager_instance: MagicMock,
 ) -> None:
     """StreamInfoManager の初期化タイムアウトとトークンマネージャーのクリアをテストします。"""
     mock_stream_info_manager_cls.return_value = mock_stream_info_manager_instance
@@ -646,15 +582,13 @@ async def test_initialize_stream_info_manager_timeout(
     client_manager._stream_info_token_manager.get.return_value = mock_token_manager_instance
 
     with (
+        patch("features.communicator.client_manager.CLIENT_LOGIN_TIMEOUT", datetime.timedelta(seconds=0.1)),
         patch("features.communicator.client_manager.StreamInfoManager", mock_stream_info_manager_cls),
-        patch("features.communicator.client_manager.asyncio.Event", return_value=mock_connection_event),
     ):
         await client_manager._initialize_stream_info_manager(mock_token)
 
     # StreamInfoManager がインスタンス化されたことをアサートします
     mock_stream_info_manager_cls.assert_called_once()
-    # 接続待機をアサートします
-    mock_wait_for.assert_awaited_once()
 
     mock_run_client.assert_awaited_once_with(mock_stream_info_manager_instance)
     # マネージャーがクローズされたことをアサートします
@@ -668,25 +602,21 @@ async def test_initialize_stream_info_manager_timeout(
     mock_token_manager_instance.clear.assert_called_once()
 
 
-@pytest.mark.filterwarnings("ignore:coroutine 'AsyncMockMixin._execute_mock_call' was never awaited:RuntimeWarning")
 @pytest.mark.asyncio
 @patch.object(ClientManager, "_run_client", new_callable=AsyncMock)
-@patch("features.communicator.client_manager.asyncio.wait_for")
 async def test_initialize_stream_info_manager_not_streamer(
-    mock_wait_for: AsyncMock,
     mock_run_client: AsyncMock,
     client_manager: ClientManager,
     mock_stream_info_manager_cls: MagicMock,
     mock_stream_info_manager_instance: MagicMock,
     mock_token: models.Token,
     mock_connection_event: MagicMock,
-    mock_token_manager_instance: MagicMock,  # 引数に追加
+    mock_token_manager_instance: MagicMock,
 ) -> None:
     """StreamInfoManager の初期化失敗 (ストリーマーではない) とトークンマネージャーのクリアをテストします。"""
     mock_stream_info_manager_cls.return_value = mock_stream_info_manager_instance
     mock_stream_info_manager_instance.is_connected = True  # 接続は成功します
     mock_stream_info_manager_instance.is_streamer = False  # ストリーマーではありません
-    mock_wait_for.side_effect = simulate_wait_for_success  # wait_for は成功します
 
     client_manager._stream_info_token_manager.get.return_value = mock_token_manager_instance
 
@@ -698,9 +628,7 @@ async def test_initialize_stream_info_manager_not_streamer(
 
     # StreamInfoManager がインスタンス化されたことをアサートします
     mock_stream_info_manager_cls.assert_called_once()
-    # 接続待機をアサートします
-    mock_wait_for.assert_awaited_once()
-    mock_connection_event.wait.assert_awaited_once()  # wait_for が成功したので wait も await されます
+    mock_connection_event.wait.assert_awaited_once()
 
     # _run_client が呼び出されたことをアサートします
     mock_run_client.assert_awaited_once_with(mock_stream_info_manager_instance)
