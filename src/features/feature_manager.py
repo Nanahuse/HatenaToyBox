@@ -61,3 +61,8 @@ class FeatureManager:
         await asyncio.gather(
             *(feature.run() for feature in self._features.values()),
         )
+
+    async def close(self) -> None:
+        await asyncio.gather(
+            *(feature.close() for feature in self._features.values()),
+        )

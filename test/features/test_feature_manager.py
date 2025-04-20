@@ -104,8 +104,9 @@ def mock_feature_classes() -> Generator[dict[str, MagicMock], None, None]:
             mock_cls = patcher.start()
             # __init__ は MagicMock が自動で処理
             mock_cls.__name__ = name
-            # run と set_user_config を AsyncMock にする
+            # run と close と set_user_config を AsyncMock にする
             mock_cls.return_value.run = AsyncMock(name=f"{name}().run")
+            mock_cls.return_value.close = AsyncMock(name=f"{name}().close")
             mock_cls.return_value.set_user_config = AsyncMock(name=f"{name}().set_user_config")
             mocks[name] = mock_cls
             patchers.append(patcher)
@@ -240,19 +241,25 @@ async def test_handle_set_config_unknown_feature(feature_manager: FeatureManager
 async def test_run(
     feature_manager: FeatureManager,
     mock_feature_instances: dict[str, MagicMock],
-    mock_asyncio_gather: AsyncMock,
 ) -> None:
-    """run が asyncio.gather で全 feature の run を呼び出すことをテストします。"""
+    """run が全 feature の run を呼び出すことをテストします。"""
     # Act
     await feature_manager.run()
 
-    # Assert: asyncio.gather が呼び出されたか
-    mock_asyncio_gather.assert_awaited_once()
+    # 全てのインスタンスでrunがコールされているか。
+    for instance in mock_feature_instances.values():
+        instance.run.assert_awaited_once()
 
-    # Assert: gather に渡された引数を確認
-    # gather の最初の位置引数を取得
-    assert mock_asyncio_gather.await_args is not None
-    args, kwargs = mock_asyncio_gather.await_args
 
-    # 引数の数が feature の数と一致するか
-    assert len(args) == len(mock_feature_instances)
+@pytest.mark.asyncio
+async def test_close(
+    feature_manager: FeatureManager,
+    mock_feature_instances: dict[str, MagicMock],
+) -> None:
+    """close が全 feature の close を呼び出すことをテストします。"""
+    # Act
+    await feature_manager.close()
+
+    # 全てのインスタンスでrunがコールされているか。
+    for instance in mock_feature_instances.values():
+        instance.close.assert_awaited_once()

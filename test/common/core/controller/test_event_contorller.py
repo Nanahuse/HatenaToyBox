@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 from unittest.mock import AsyncMock, call  # Use AsyncMock for async handlers
 
 import pytest
@@ -137,42 +136,9 @@ async def test_publish_nowait(controller: EventController) -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_no_handlers(controller: EventController) -> None:
-    """Test run processes an event with no registered handlers without error."""
-    event = EventA(payload="test")
-    await controller.publish(event)
-    # Add a sentinel event to stop the loop gracefully
-    sentinel = EventB(payload="STOP")
-    await controller.publish(sentinel)
-
-    processed_events = []
-
-    async def run_wrapper() -> None:
-        while True:
-            evt = await controller._queue.get()
-            processed_events.append(evt)  # Simulate processing outside run
-            controller.logger.debug("Wrapper got %s", type(evt).__name__)  # Simulate logging
-            if evt == sentinel:
-                controller.logger.debug("Wrapper stopping on sentinel")
-                controller._queue.task_done()  # Mark sentinel as done
-                break
-            # Simulate the check inside run() - no handlers, so just mark done
-            if type(evt) not in controller._handlers:
-                controller.logger.debug("Wrapper found no handler for %s", type(evt).__name__)
-            controller._queue.task_done()  # Mark event as done
-
-    # We don't run controller.run() directly as it's an infinite loop.
-    # Instead, we simulate its core logic by consuming the queue.
-    run_task = asyncio.create_task(run_wrapper())
-
-    # Wait for the queue to be processed
-    await asyncio.wait_for(controller._queue.join(), timeout=1.0)
-    run_task.cancel()  # Cancel the wrapper task
-    with contextlib.suppress(asyncio.CancelledError):
-        await run_task
-
-    assert processed_events == [event, sentinel]  # Ensure both were dequeued
-    # No handlers were added, so no mocks to check
+async def test_run(controller: EventController) -> None:
+    await asyncio.gather(controller.run(), controller.close())
+    assert controller._event.is_set()
 
 
 @pytest.mark.asyncio
@@ -181,23 +147,15 @@ async def test_run_single_handler(controller: EventController, mock_handler_a: A
     event_a = EventA(payload="payload_a")
     controller.add_handler(EventA, mock_handler_a)
 
-    # Start controller run in the background
-    run_task = asyncio.create_task(controller.run())
-
     # Publish the event
     await controller.publish(event_a)
 
-    # Give the loop time to process the event
-    await asyncio.sleep(0.01)  # Small delay
+    # Run
+    await controller._main()
 
     # Assertions
     mock_handler_a.assert_awaited_once_with(event_a)
     assert controller._queue.empty()  # Event should be consumed
-
-    # Clean up the run task
-    run_task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await run_task
 
 
 @pytest.mark.asyncio
@@ -212,18 +170,16 @@ async def test_run_multiple_handlers_same_event(
     controller.add_handler(EventA, handler1)
     controller.add_handler(EventA, handler2)
 
-    run_task = asyncio.create_task(controller.run())
     await controller.publish(event_a)
+
+    # Run
+    await controller._main()
 
     await wait_for_handler_call(mock_handler_a)
 
     handler1.assert_awaited_once_with(event_a)
     handler2.assert_awaited_once_with(event_a)
     assert controller._queue.empty()
-
-    run_task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await run_task
 
 
 @pytest.mark.asyncio
@@ -237,24 +193,19 @@ async def test_run_multiple_events_different_handlers(
     controller.add_handler(EventA, mock_handler_a)
     controller.add_handler(EventB, mock_handler_b)
 
-    run_task = asyncio.create_task(controller.run())
-
     # Publish events (order might matter for timing, but handlers should be correct)
     await controller.publish(event_a)
     await controller.publish(event_b)
 
-    # Wait long enough for both events to be processed
-    await asyncio.sleep(0.02)
+    # Run
+    await controller._main()
+    await controller._main()
 
     mock_handler_a.assert_awaited_once_with(event_a)
     mock_handler_b.assert_awaited_once_with(event_b)
     mock_handler_a.assert_has_awaits([call(event_a)])  # More explicit check
     mock_handler_b.assert_has_awaits([call(event_b)])
     assert controller._queue.empty()
-
-    run_task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await run_task
 
 
 @pytest.mark.asyncio
@@ -265,12 +216,12 @@ async def test_run_event_with_no_matching_handler(controller: EventController, m
 
     controller.add_handler(EventA, mock_handler_a)  # Only handler for EventA
 
-    run_task = asyncio.create_task(controller.run())
-
     await controller.publish(event_b)  # Publish event with no handler
     await controller.publish(event_a)
 
-    await wait_for_handler_call(mock_handler_a)
+    # Run
+    await controller._main()
+    await controller._main()
 
     # Handler for A should be called only once with event_a
     # No handler for B, so no calls expected related to it
@@ -278,6 +229,11 @@ async def test_run_event_with_no_matching_handler(controller: EventController, m
 
     assert controller._queue.empty()  # Both events should be consumed
 
-    run_task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await run_task
+
+@pytest.mark.asyncio
+async def test_main_timeout(controller: EventController, mock_handler_a: AsyncMock) -> None:
+    controller.add_handler(EventA, mock_handler_a)  # Only handler for EventA
+
+    await asyncio.wait_for(controller._main(), 10.0)
+
+    mock_handler_a.assert_not_awaited()
