@@ -22,19 +22,20 @@ classifiers = [
 Homepage = "https://github.com/Nanahuse/HatenaToyBox"
 
 [dependency-groups]
-test = [
+check = [
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
     "types-cachetools>=5.5.0.20240820",
     "pytest-cov>=6.1.1",
     "freezegun>=1.5.1",
+    "mypy>=1.15.0",
+    "ruff>=0.11.4",
 ]
-check = ["mypy>=1.15.0", "ruff>=0.11.4"]
 debug = ["rich>=14.0.0"]
-
+license = ["pip-licenses>=5.0.0"]
 
 [tool.uv]
-default-groups = []
+default-groups = "all"
 
 [tool.uv.sources]
 twitchio = { git = "https://github.com/Nanahuse/TwitchIO.git", rev = "feature/add_tags_to_modify_stream" }
@@ -60,6 +61,7 @@ docstring-code-format = true
     "PLR0913",
     "PLR2004",
 ]
+"scripts/*" = ["INP001"]
 
 
 [tool.pytest.ini_options]
