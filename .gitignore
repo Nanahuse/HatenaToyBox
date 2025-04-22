@@ -1,3 +1,6 @@
 **/__pycache__
 .coverage
 .tmp
+build
+NOTICE
+THIRD_PARTY_LICENSES.md

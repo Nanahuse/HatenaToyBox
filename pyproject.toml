@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "deepl-py>=1.0.3",
+    "flet>=0.27.6",
     "gpytranslate>=2.0.0",
     "playsound3>=2.5.2",
     "pydantic>=2.10.6",
@@ -23,6 +24,7 @@ Homepage = "https://github.com/Nanahuse/HatenaToyBox"
 
 [dependency-groups]
 check = [
+    "flet[all]==0.27.6",
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
     "types-cachetools>=5.5.0.20240820",
@@ -33,6 +35,13 @@ check = [
 ]
 debug = ["rich>=14.0.0"]
 license = ["pip-licenses>=5.0.0"]
+
+[tool.flet]
+product = "HatenaToyBox"
+copyright = "Copyright (C) 2025 by Nanahuse"
+
+[tool.flet.app]
+path = "src"
 
 [tool.uv]
 default-groups = "all"
