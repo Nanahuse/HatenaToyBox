@@ -22,7 +22,7 @@ class ConnectionStatusIcon:
     CONNECTING = flet.Icons.HOURGLASS_EMPTY_OUTLINED
 
 
-class ConnectionIndicator(flet.IconButton):
+class ConnectionIndicator(flet.IconButton):  # type: ignore[misc]
     def __init__(self) -> None:
         super().__init__(icon_size=30)
 

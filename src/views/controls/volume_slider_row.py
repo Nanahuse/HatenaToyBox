@@ -1,7 +1,7 @@
 import flet
 
 
-class VolumeSliderRow(flet.Row):
+class VolumeSliderRow(flet.Row):  # type: ignore[misc]
     """音量調整のためのTextとSliderを持つRow"""
 
     def __init__(
@@ -20,7 +20,7 @@ class VolumeSliderRow(flet.Row):
 
     @property
     def value(self) -> float | None:
-        return self.slider.value
+        return self.slider.value  # type: ignore[no-any-return]
 
     @value.setter
     def value(self, new_value: float | None) -> None:

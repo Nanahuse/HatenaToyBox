@@ -1,7 +1,7 @@
 import flet
 
 
-class ColorDropdown(flet.Dropdown):
+class ColorDropdown(flet.Dropdown):  # type: ignore[misc]
     """色を選択するためのドロップダウンメニュー"""
 
     def __init__(self, width: int) -> None:

@@ -2,7 +2,7 @@ import re
 
 import flet
 
-from .activity_control import ActivityControl
+from .activity_control import ActivityControl, Tag
 
 
 def parse_url(text: str) -> list[flet.TextSpan]:
@@ -25,7 +25,7 @@ def parse_url(text: str) -> list[flet.TextSpan]:
     return spans
 
 
-class TimeLine(flet.Column):
+class TimeLine(flet.Column):  # type: ignore[misc]
     def __init__(self) -> None:
         super().__init__(
             expand=True,
@@ -38,6 +38,7 @@ class TimeLine(flet.Column):
     def add_activity(self, who: str, text: str) -> None:
         self.controls.append(
             ActivityControl(
+                Tag.CHAT,
                 who,
                 parse_url(text),
                 flet.Colors.with_opacity(1.0, flet.Colors.BLUE_200),
@@ -48,9 +49,10 @@ class TimeLine(flet.Column):
     def add_clip(self, who: str, title: str, url: str) -> None:
         self.controls.append(
             ActivityControl(
+                Tag.CLIP,
                 who,
                 [
-                    flet.TextSpan(text=f"Clip: {title} ("),
+                    flet.TextSpan(text=f"{title} ("),
                     flet.TextSpan(
                         text=url,
                         url=url,
@@ -66,8 +68,9 @@ class TimeLine(flet.Column):
     def add_raid(self, who: str, stream_title: str, game: str) -> None:
         self.controls.append(
             ActivityControl(
+                Tag.RAID,
                 who,
-                [flet.TextSpan(text=f"Raid: {stream_title} ({game})")],
+                [flet.TextSpan(text=f"Raid from `{stream_title}` ({game})")],
                 flet.Colors.with_opacity(1.0, flet.Colors.RED_200),
                 flet.Colors.with_opacity(1.0, flet.Colors.RED_100),
             )

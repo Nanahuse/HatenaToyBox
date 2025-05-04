@@ -1,7 +1,7 @@
 import flet
 
 
-class FilePickerRow(flet.Row):
+class FilePickerRow(flet.Row):  # type: ignore[misc]
     """ファイル選択のためのTextFieldとButtonを持つRow"""
 
     def __init__(
@@ -21,7 +21,7 @@ class FilePickerRow(flet.Row):
 
     @property
     def value(self) -> str | None:
-        return self.text_field.value
+        return self.text_field.value  # type: ignore[no-any-return]
 
     @value.setter
     def value(self, new_value: str | None) -> None:

@@ -13,7 +13,7 @@ WIDTH = 120
 # --- セクションクラス ---
 
 
-class ConnectionSettingsSection(flet.Column):
+class ConnectionSettingsSection(flet.Column):  # type: ignore[misc]
     """Connection設定セクション"""
 
     def __init__(self, router: Router) -> None:
@@ -34,10 +34,10 @@ class ConnectionSettingsSection(flet.Column):
         )
 
 
-class ChatSettingsSection(flet.Column):
+class ChatSettingsSection(flet.Column):  # type: ignore[misc]
     """Chatの設定セクション"""
 
-    class DoorbellSubSection(flet.Column):
+    class DoorbellSubSection(flet.Column):  # type: ignore[misc]
         """ドアベル設定セクション"""
 
         def __init__(self, router: Router) -> None:
@@ -69,7 +69,7 @@ class ChatSettingsSection(flet.Column):
             self.volume_slider.visible = self.switch.value
             self.update()
 
-    class TranslateSubSection(flet.Column):
+    class TranslateSubSection(flet.Column):  # type: ignore[misc]
         """翻訳設定セクション"""
 
         def __init__(self, _router: Router) -> None:
@@ -133,7 +133,7 @@ class ChatSettingsSection(flet.Column):
         )
 
 
-class RaidSettingsSection(flet.Column):
+class RaidSettingsSection(flet.Column):  # type: ignore[misc]
     """Raid設定セクション"""
 
     def __init__(self, _router: Router) -> None:
@@ -169,7 +169,7 @@ class RaidSettingsSection(flet.Column):
         self.update()
 
 
-class ClipSettingsSection(flet.Column):
+class ClipSettingsSection(flet.Column):  # type: ignore[misc]
     """Clip設定セクション"""
 
     def __init__(self, _router: Router) -> None:
@@ -196,7 +196,7 @@ class ClipSettingsSection(flet.Column):
         self.update()
 
 
-class StreaminfoSettingsSection(flet.Column):
+class StreaminfoSettingsSection(flet.Column):  # type: ignore[misc]
     """Streaminfo設定セクション"""
 
     def __init__(self, _router: Router) -> None:

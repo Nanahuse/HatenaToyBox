@@ -3,7 +3,7 @@ import flet
 from .router import Router
 
 
-class Header(flet.Row):
+class Header(flet.Row):  # type: ignore[misc]
     def __init__(self, router: Router, title: str) -> None:
         self.back_button = flet.IconButton(
             icon=flet.icons.ARROW_BACK_IOS_NEW_OUTLINED,

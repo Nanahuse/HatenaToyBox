@@ -7,7 +7,7 @@ from .controls.time_line import TimeLine
 from .router import Router
 
 
-class Header(flet.Row):
+class Header(flet.Row):  # type: ignore[misc]
     def __init__(self) -> None:
         self.connection_indicator = ConnectionIndicator()
         self.settings_icon = flet.IconButton(
