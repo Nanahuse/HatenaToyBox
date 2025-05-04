@@ -19,6 +19,7 @@ class License(TypedDict):
 
 overwrite_licenses: dict[str, dict[str, str]] = {
     "attrs": {"License": "MIT License"},
+    "flet": {"LicenseText": "https://spdx.org/licenses/Apache-2.0.html"},
     "urllib3": {"License": "MIT License"},
     "pywin32": {
         "License": "BSD 3-Clause License ?",
