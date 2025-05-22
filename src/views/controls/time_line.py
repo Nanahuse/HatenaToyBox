@@ -25,7 +25,7 @@ def parse_url(text: str) -> list[flet.TextSpan]:
     return spans
 
 
-class TimeLine(flet.Column):
+class TimeLine(flet.Column):  # type: ignore[misc]
     def __init__(self) -> None:
         super().__init__(
             expand=True,
@@ -35,7 +35,17 @@ class TimeLine(flet.Column):
             horizontal_alignment=flet.CrossAxisAlignment.STRETCH,
         )
 
-    def add_activity(self, who: str, text: str) -> None:
+    def add_system(self, text: str) -> None:
+        self.controls.append(
+            ActivityControl(
+                "System",
+                [flet.TextSpan(text=text)],
+                flet.Colors.with_opacity(1.0, flet.Colors.GREY_200),
+                flet.Colors.with_opacity(1.0, flet.Colors.GREY_100),
+            )
+        )
+
+    def add_chat(self, who: str, text: str) -> None:
         self.controls.append(
             ActivityControl(
                 who,
@@ -50,13 +60,13 @@ class TimeLine(flet.Column):
             ActivityControl(
                 who,
                 [
-                    flet.TextSpan(text=f"Clip: {title} ("),
+                    flet.TextSpan(text=f"CLip: {title} ( "),
                     flet.TextSpan(
                         text=url,
                         url=url,
                         style=flet.TextStyle(color=flet.Colors.BLUE, decoration=flet.TextDecoration.UNDERLINE),
                     ),
-                    flet.TextSpan(text=")"),
+                    flet.TextSpan(text=" )"),
                 ],
                 flet.Colors.with_opacity(1.0, flet.Colors.ORANGE_200),
                 flet.Colors.with_opacity(1.0, flet.Colors.ORANGE_100),
@@ -67,8 +77,18 @@ class TimeLine(flet.Column):
         self.controls.append(
             ActivityControl(
                 who,
-                [flet.TextSpan(text=f"Raid: {stream_title} ({game})")],
+                [flet.TextSpan(text=f"Raided from `{stream_title}` ({game})")],
                 flet.Colors.with_opacity(1.0, flet.Colors.RED_200),
                 flet.Colors.with_opacity(1.0, flet.Colors.RED_100),
+            )
+        )
+
+    def add_follower(self, who: str) -> None:
+        self.controls.append(
+            ActivityControl(
+                who,
+                [flet.TextSpan(text="Followed")],
+                flet.Colors.with_opacity(1.0, flet.Colors.GREEN_200),
+                flet.Colors.with_opacity(1.0, flet.Colors.GREEN_100),
             )
         )

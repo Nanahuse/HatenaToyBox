@@ -3,13 +3,13 @@ import flet
 from .color_dropdown import ColorDropdown
 
 
-class MessageFormatRow(flet.Row):
+class MessageFormatRow(flet.Row):  # type:ignore[misc]
     """メッセージ形式設定のためのTextField, (オプションの)ColorDropdown, TestButtonを持つRow"""
 
     def __init__(
         self,
         value: str,
-        width: int | None = None,
+        width: int,
         show_color_dropdown: bool = False,  # noqa: FBT001, FBT002
     ) -> None:
         self.text_field = flet.TextField(label="メッセージの形式", value=value, multiline=False, expand=True)
@@ -26,7 +26,7 @@ class MessageFormatRow(flet.Row):
 
     @property
     def value(self) -> str | None:
-        return self.text_field.value
+        return self.text_field.value  # type: ignore[no-any-return]
 
     @value.setter
     def value(self, new_value: str | None) -> None:

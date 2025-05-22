@@ -7,7 +7,7 @@ from .controls.time_line import TimeLine
 from .router import Router
 
 
-class Header(flet.Row):
+class Header(flet.Row):  # type: ignore[misc]
     def __init__(self) -> None:
         self.connection_indicator = ConnectionIndicator()
         self.settings_icon = flet.IconButton(
@@ -37,9 +37,6 @@ class MainView:
         self.header.settings_icon.on_click = lambda _: router.go_settings()
 
         self.time_line = TimeLine()
-
-    def add_activity(self, who: str, text: str) -> None:
-        self.time_line.add_activity(who, text)
 
     def build_view(self) -> flet.View:
         return flet.View(

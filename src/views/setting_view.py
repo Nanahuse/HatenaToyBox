@@ -13,7 +13,7 @@ WIDTH = 120
 # --- セクションクラス ---
 
 
-class ConnectionSettingsSection(flet.Column):
+class ConnectionSettingsSection(flet.Column):  # type: ignore[misc]
     """Connection設定セクション"""
 
     def __init__(self, router: Router) -> None:
@@ -34,10 +34,10 @@ class ConnectionSettingsSection(flet.Column):
         )
 
 
-class ChatSettingsSection(flet.Column):
+class ChatSettingsSection(flet.Column):  # type: ignore[misc]
     """Chatの設定セクション"""
 
-    class DoorbellSubSection(flet.Column):
+    class DoorbellSubSection(flet.Column):  # type: ignore[misc]
         """ドアベル設定セクション"""
 
         def __init__(self, router: Router) -> None:
@@ -69,7 +69,7 @@ class ChatSettingsSection(flet.Column):
             self.volume_slider.visible = self.switch.value
             self.update()
 
-    class TranslateSubSection(flet.Column):
+    class TranslateSubSection(flet.Column):  # type: ignore[misc]
         """翻訳設定セクション"""
 
         def __init__(self, _router: Router) -> None:
@@ -133,14 +133,14 @@ class ChatSettingsSection(flet.Column):
         )
 
 
-class RaidSettingsSection(flet.Column):
+class RaidSettingsSection(flet.Column):  # type: ignore[misc]
     """Raid設定セクション"""
 
     def __init__(self, _router: Router) -> None:
         self.shoutout_switch = flet.Switch(label="シャウトアウトする", value=True, on_change=self._on_change)
         self.introduce_switch = flet.Switch(label="チャットで紹介する", value=True, on_change=self._on_change)
         self.message_format = MessageFormatRow(
-            value="{raider} さん、Raidありがとう！ 最新の配信は「{title}」({game})",
+            value="",
             show_color_dropdown=True,
             width=WIDTH,
         )
@@ -169,14 +169,14 @@ class RaidSettingsSection(flet.Column):
         self.update()
 
 
-class ClipSettingsSection(flet.Column):
+class ClipSettingsSection(flet.Column):  # type: ignore[misc]
     """Clip設定セクション"""
 
     def __init__(self, _router: Router) -> None:
         # --- コントロール ---
         self.clip_introduce_switch = flet.Switch(label="チャットで紹介する", on_change=self._on_change, value=True)
         self.clip_message_format = MessageFormatRow(
-            value="{creator} さんが素敵なクリップを作ってくれました！ {title}: {url}",
+            value="",
             show_color_dropdown=True,
             width=WIDTH,
         )
@@ -196,8 +196,8 @@ class ClipSettingsSection(flet.Column):
         self.update()
 
 
-class StreaminfoSettingsSection(flet.Column):
-    """Streaminfo設定セクション"""
+class StreamInfoSettingsSection(flet.Column):  # type: ignore[misc]
+    """StreamInfo設定セクション"""
 
     def __init__(self, _router: Router) -> None:
         self.switch = flet.Switch(
@@ -220,7 +220,7 @@ class SettingView:
         self.chat_settings_section = ChatSettingsSection(router)
         self.raid_settings_section = RaidSettingsSection(router)
         self.clip_settings_section = ClipSettingsSection(router)
-        self.stream_info_section = StreaminfoSettingsSection(router)
+        self.stream_info_section = StreamInfoSettingsSection(router)
 
     def build_view(self) -> flet.View:
         """設定ページのViewを構築して返す"""

@@ -15,7 +15,7 @@ class Route(StrEnum):
 class Router:
     def __init__(self, page: flet.Page) -> None:
         self.page = page
-        self.history = []
+        self.history = list[Route]()
 
     def _go(self, route: Route) -> None:
         self.history.append(route)

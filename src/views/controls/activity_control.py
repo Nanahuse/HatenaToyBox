@@ -1,8 +1,18 @@
+from enum import StrEnum
+
 import flet
 import flet.core.types as flet_types
 
 
-class ActivityControl(flet.Container):
+class Tag(StrEnum):
+    CHAT = "Chat"
+    RAID = "Raid"
+    CLIP = "Clip"
+    FOLLOW = "Follow"
+    SYSTEM = "System"
+
+
+class ActivityControl(flet.Container):  # type: ignore[misc]
     def __init__(
         self,
         who: str,
@@ -20,9 +30,11 @@ class ActivityControl(flet.Container):
             content=flet.Row(
                 [
                     flet.Container(
-                        flet.Text(who, weight="bold", selectable=True),
+                        flet.Text(who, selectable=True),
                         width=120,
-                        padding=padding,
+                        padding=flet.padding.only(
+                            left=activity_side_padding, right=activity_side_padding, top=padding, bottom=padding
+                        ),
                         bgcolor=name_color,
                         border_radius=flet.border_radius.all(radius),
                         alignment=flet.alignment.center_left,

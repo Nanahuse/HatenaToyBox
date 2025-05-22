@@ -22,7 +22,7 @@ class ConnectionView:
                         flet.Row([flet.Text("接続状態:", width=100), flet.Text("接続済み")]),
                         flet.Row([flet.Text("アカウント名:", width=100), flet.Text("Nanahuse")]),
                         flet.Row([flet.Text("属性:", width=100), flet.Text("Streamer")]),
-                        flet.Button("切断", icon=flet.icons.CANCEL_OUTLINED, width=100),
+                        flet.Button("切断", icon=flet.Icons.CANCEL_OUTLINED, width=100),
                     ]
                 ),
                 flet.Column(
@@ -31,7 +31,7 @@ class ConnectionView:
                         flet.Row([flet.Text("接続状態:", width=100), flet.Text("未接続")]),
                         flet.Row([flet.Text("アカウント名:", width=100), flet.Text("???")]),
                         flet.Row([flet.Text("属性:", width=100), flet.Text("???")]),
-                        flet.Button("接続", icon=flet.icons.LINK_OUTLINED, width=100),
+                        flet.Button("接続", icon=flet.Icons.LINK_OUTLINED, width=100),
                     ]
                 ),
             ],

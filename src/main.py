@@ -38,14 +38,15 @@ def main(page: flet.Page) -> None:
 
     router.go_main()
 
-    chat_page.add_activity("System", "アプリケーションが起動しました。")
-    chat_page.time_line.add_clip("System", "Google", "https://www.google.com/")
-    chat_page.time_line.add_raid("System", "Google", "Google")
+    chat_page.time_line.add_system("アプリケーションが起動しました。")
+    chat_page.time_line.add_chat("Test", "Hello World")
+    chat_page.time_line.add_clip("Hoge", "Google", "https://www.google.com/")
+    chat_page.time_line.add_raid("Piyo", "Google", "Google")
+    chat_page.time_line.add_follower("Nyan")
 
     chat_page.header.update_status(ConnectionStatus.CONNECTED)
 
     page.update()
 
 
-if __name__ == "__main__":
-    flet.app(target=main)
+flet.app(target=main)
