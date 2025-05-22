@@ -24,7 +24,6 @@ Homepage = "https://github.com/Nanahuse/HatenaToyBox"
 
 [dependency-groups]
 check = [
-    "flet[all]==0.27.6",
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
     "types-cachetools>=5.5.0.20240820",
@@ -33,6 +32,7 @@ check = [
     "mypy>=1.15.0",
     "ruff>=0.11.4",
 ]
+build = ["flet[all]==0.27.6"]
 debug = ["rich>=14.0.0"]
 license = ["pip-licenses>=5.0.0"]
 
