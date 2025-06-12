@@ -31,7 +31,7 @@ if __name__ == "__main__":
         show_path=__debug__,
         enable_link_path=__debug__,
     )
-    handler.setFormatter(logging.Formatter("%(name)-22s - %(message)s"))
+    handler.setFormatter(logging.Formatter("%(name)-32s - %(message)s"))
 
     logger.addHandler(handler)
     feature.logger.addHandler(handler)

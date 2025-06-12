@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import pytest
 import twitchio
 import twitchio.errors as twitchio_errors
-from freezegun import freeze_time
 from pydantic import SecretStr
 from twitchio.ext import commands, eventsub
 from twitchio.ext.eventsub import EventSubWSClient as RealEventSubWSClient
@@ -76,7 +75,6 @@ def mock_twitchio_streamer_user() -> AsyncMock:
     user = AsyncMock(spec=twitchio_models.User)
     user.id = TEST_STREAMER_USER_ID
     user.name = TEST_CHANNEL_NAME
-    user.fetch_clips = AsyncMock(return_value=[])
     user.chat_announcement = AsyncMock()
     user.shoutout = AsyncMock()
     user.fetch = AsyncMock(return_value=user)  # ユーザーオブジェクトに対する fetch() 呼び出し用
@@ -739,53 +737,3 @@ async def test_shoutout_unhandled_error(
     assert exc_info.value.__cause__ is original_error
 
     mock_twitchio_streamer_user.shoutout.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-@freeze_time(NOW)
-async def test_fetch_clips_not_connected(twitch_client: TwitchClient) -> None:
-    """接続されていない場合、fetch_clips が UnauthorizedError を発生させることをテストします。"""
-    duration = datetime.timedelta(minutes=5)
-    with patch.object(TwitchClient, "is_connected", False, create=True):  # noqa: SIM117
-        with pytest.raises(exceptions.UnauthorizedError, match="Not connected yet"):
-            await twitch_client.fetch_clips(duration)
-
-
-@pytest.mark.asyncio
-@freeze_time(NOW)
-async def test_fetch_clips_success(
-    twitch_client: TwitchClient,
-    mock_twitchio_streamer_user: AsyncMock,
-) -> None:
-    """fetch_clips がクリップを正しくフェッチし、変換することをテストします。"""
-    duration = datetime.timedelta(minutes=10)
-    expected_started_at = NOW - duration
-
-    # twitchio クリップオブジェクトをモック
-    mock_clip1_creator = MagicMock(spec=twitchio_models.User)
-    mock_clip1_creator.name = "Creator1"
-    mock_clip1 = MagicMock(spec=twitchio_models.Clip, url="url1", title="Title 1", creator=mock_clip1_creator)
-    mock_clip2_creator = MagicMock(spec=twitchio_models.User)  # 匿名クリエイターをテスト
-    mock_clip2_creator.name = None
-    mock_clip2 = MagicMock(spec=twitchio_models.Clip, url="url2", title="Title 2", creator=mock_clip2_creator)
-
-    mock_twitchio_streamer_user.fetch_clips.return_value = [mock_clip1, mock_clip2]
-
-    with patch.object(TwitchClient, "is_connected", True, create=True):
-        result = await twitch_client.fetch_clips(duration)
-
-        mock_twitchio_streamer_user.fetch_clips.assert_awaited_once()
-        # started_at が正しく渡されたかを確認
-        call_args, call_kwargs = mock_twitchio_streamer_user.fetch_clips.call_args
-        assert "started_at" in call_kwargs
-        assert call_kwargs["started_at"] == expected_started_at
-
-        assert len(result) == 2
-        assert isinstance(result[0], models.Clip)
-        assert result[0].url == "url1"
-        assert result[0].title == "Title 1"
-        assert result[0].creator == "Creator1"
-        assert isinstance(result[1], models.Clip)
-        assert result[1].url == "url2"
-        assert result[1].title == "Title 2"
-        assert result[1].creator == "Anonymous"  # 匿名処理を確認

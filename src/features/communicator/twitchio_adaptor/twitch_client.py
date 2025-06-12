@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Protocol, cast, override
 
 import twitchio.errors as twitchio_errors
@@ -15,6 +14,7 @@ from .utils.cast_message import cast_message
 
 if TYPE_CHECKING:
     import asyncio
+    from datetime import timedelta
     from logging import Logger
 
     from pydantic import SecretStr
@@ -176,16 +176,3 @@ class TwitchClient(BaseTwitchClient):
             raise exceptions.UnauthorizedError(e.message) from e
         except BaseException as e:
             raise exceptions.UnhandledError(str(e)) from e
-
-    async def fetch_clips(self, duration: timedelta) -> list[models.Clip]:
-        if not self.is_connected:
-            msg = "Not connected yet"
-            raise exceptions.UnauthorizedError(msg)
-
-        started_at = datetime.now(UTC) - duration
-
-        clips = await self._user.fetch_clips(started_at=started_at)
-
-        self._logger.debug("Find clips(len=%d) duration: %s", len(clips), duration)
-
-        return [models.Clip(url=clip.url, title=clip.title, creator=clip.creator.name or "Anonymous") for clip in clips]
