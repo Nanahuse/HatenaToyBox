@@ -20,6 +20,27 @@ def main(page: flet.Page) -> None:
     # ページ設定
     page.title = "Hatena Toy Box"
 
+    dlg_modal = flet.AlertDialog(
+        modal=True,
+        title=flet.Text("Please confirm"),
+        content=flet.Text(
+            spans=[
+                flet.TextSpan("以下のリンクをクリックしてください:\n"),
+                flet.TextSpan(
+                    "https://www.google.com/",
+                    url="https://www.google.com/",
+                    style=flet.TextStyle(color=flet.Colors.BLUE),
+                ),
+            ]
+        ),
+        actions=[
+            flet.TextButton("Yes", on_click=lambda e: page.close(dlg_modal)),
+            flet.TextButton("No", on_click=lambda e: page.close(dlg_modal)),
+        ],
+        actions_alignment=flet.MainAxisAlignment.END,
+        on_dismiss=lambda e: print("Modal dialog dismissed!"),
+    )
+
     def route_change(e: flet.RouteChangeEvent) -> None:
         page = cast("flet.Page", e.page)
         page.views.clear()
@@ -45,6 +66,8 @@ def main(page: flet.Page) -> None:
     chat_page.time_line.add_follower("Nyan")
 
     chat_page.header.update_status(ConnectionStatus.CONNECTED)
+
+    page.open(dlg_modal)
 
     page.update()
 
